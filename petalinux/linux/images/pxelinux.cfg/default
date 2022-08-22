@@ -1,0 +1,4 @@
+LABEL Linux
+KERNEL linux.bin.ub
+FDT system.dtb
+INITRD rootfs.cpio.gz.u-boot
