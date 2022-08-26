@@ -46,9 +46,10 @@ main.add_command(scan)
 
 @click.command()
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
-def init(_busnum):
+@click.option('-f', '--freq', '_freq', type=int, default=333, nargs=1, help='Fire\'s frequency. The program will try to retrieve automatically the version. This value will be used otherwise. (default=333)')
+def init(_busnum, _freq):
     " Initialize the explorer chip. This must be done before any other operation. "
-    fire = Fire(_busnum)
+    fire = Fire(_busnum, _freq)
     explorer = Explorer(fire.freq, _busnum)
     explorer.init()
 main.add_command(init)
@@ -57,9 +58,10 @@ main.add_command(init)
 @click.command()
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 @click.option('-c', '--chip', '_chip', type=str, required=True, nargs=1, help='Chip to read from (FIRE or EXPLORER/ICE)')
-def info(_chip, _busnum):
+@click.option('-f', '--freq', '_freq', type=int, default=333, nargs=1, help='Fire\'s frequency. The program will try to retrieve automatically the version. This value will be used otherwise. (default=333)')
+def info(_chip, _busnum, _freq):
     " Get chip internal information. "
-    fire = Fire(_busnum)
+    fire = Fire(_busnum, _freq)
     if _chip.lower() == "fire":
         print("ID:", hex(fire.id))
         print("Dirty bit:", fire.is_dirty)
@@ -89,10 +91,11 @@ main.add_command(info)
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 @click.option('-r', '--register', '_register', type=str, required=True, nargs=1, help='Register address to read (in hex)')
 @click.option('-c', '--chip', '_chip', type=str, required=True, nargs=1, help='Chip to read from (FIRE or EXPLORER/ICE)')
-def read(_register, _chip, _busnum):
+@click.option('-f', '--freq', '_freq', type=int, default=333, nargs=1, help='Fire\'s frequency. The program will try to retrieve automatically the version. This value will be used otherwise. (default=333)')
+def read(_register, _chip, _busnum, _freq):
     "Read from an internal register of a program."
     _register = int(_register, 16)
-    fire = Fire(_busnum)
+    fire = Fire(_busnum, _freq)
     if _chip.lower() == "fire":
         print(hex(fire.i2cread(_register)))
     elif _chip.lower() in ["explorer", "exp"]:
@@ -107,11 +110,12 @@ main.add_command(read)
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 @click.option('-r', '--register', '_register', type=str, required=True, nargs=1, help='Register address to read (in hex)')
 @click.option('-c', '--chip', '_chip', type=str, required=True, nargs=1, help='Chip to read from (FIRE or EXPLORER/ICE)')
-def i2cread(_register, _chip, _busnum):
+@click.option('-f', '--freq', '_freq', type=int, default=333, nargs=1, help='Fire\'s frequency. The program will try to retrieve automatically the version. This value will be used otherwise. (default=333)')
+def i2cread(_register, _chip, _busnum, _freq):
     "Read from an internal register of a program."
     _register = int(_register, 16)
     
-    fire = Fire(_busnum)
+    fire = Fire(_busnum, _freq)
     if _chip.lower() == "fire":
         print(hex(fire.i2cread(_register)))
     elif _chip.lower() in ["explorer", "exp"]:
@@ -132,11 +136,12 @@ main.add_command(i2cread)
 @click.option('-r', '--register', '_register', type=str, required=True, nargs=1, help='Register address to read (in hex)')
 @click.option('-d', '--data', '_data', type=str, required=True, nargs=1, help='Data value to write to the register (in hex)')
 @click.option('-c', '--chip', '_chip', type=str, required=True, nargs=1, help='Chip to read from (FIRE or ICE)')
-def write(_register, _data, _chip, _busnum):
+@click.option('-f', '--freq', '_freq', type=int, default=333, nargs=1, help='Fire\'s frequency. The program will try to retrieve automatically the version. This value will be used otherwise. (default=333)')
+def write(_register, _data, _chip, _busnum, _freq):
     "Write to an internal register of a program."
     _register = int(_register, 16)
     _data = int(_data, 16)
-    fire = Fire(_busnum)
+    fire = Fire(_busnum, _freq)
     if _chip.lower() == "fire":
         res = fire.i2cwrite(_register, _data)
         print("Writing check : {}".format("Success" if res else "Failed"))
@@ -156,10 +161,11 @@ main.add_command(write)
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 @click.option('-d', '--data', '_data', type=str, required=True, nargs=1, help='Data value to write to the register (in hex)')
 @click.option('-c', '--chip', '_chip', type=str, required=True, nargs=1, help='Chip to read from (FIRE or ICE)')
-def i2cwrite(_data, _chip, _busnum):
+@click.option('-f', '--freq', '_freq', type=int, default=333, nargs=1, help='Fire\'s frequency. The program will try to retrieve automatically the version. This value will be used otherwise. (default=333)')
+def i2cwrite(_data, _chip, _busnum, _freq):
     "Write to an internal register of a program."
     _data = int(_data, 16)
-    fire = Fire(_busnum)
+    fire = Fire(_busnum, _freq)
     if _chip.lower() == "fire":
         res = fire.i2cwrite(_data)
         # print("Writing check : {}".format("Success" if res else "Failed"))
@@ -177,9 +183,10 @@ main.add_command(i2cwrite)
 @click.option('-d', '--ddimm', '_ddimm', type=str, required=True, nargs=1, help='''DDIMMs to reset. Write the letters of DDIMMs to reset without spaces.
                 (Examples: abcdsw, bdw, s)''')
 @click.option('-s', '--state', '_state', type=str, required=True, nargs=1, help='on: RESET ON | off: RESET OFF')
-def ddimmreset(_ddimm, _state, _busnum):
+@click.option('-f', '--freq', '_freq', type=int, default=333, nargs=1, help='Fire\'s frequency. The program will try to retrieve automatically the version. This value will be used otherwise. (default=333)')
+def ddimmreset(_ddimm, _state, _busnum, _freq):
     "Set the reset state of the DDIMMs (In RESET mode : ON | Out RESET mode : OFF)."
-    fire = Fire(_busnum)
+    fire = Fire(_busnum, _freq)
     if _state.lower() == "on": fire.set_ddimm_on_reset(_ddimm)
     elif _state.lower() == "off": fire.set_ddimm_off_reset(_ddimm)
     else : print("State provided is not supported.")
@@ -201,7 +208,7 @@ def initpath(_busnum, _ddimm):
     if len(_ddimm) > 1 and _ddimm.lower() != "none":
         print("Please provide a valid ddimm letter (a or b) or none.")
         return
-    setup_ddimm_path(_ddimm)
+    setup_ddimm_path(_ddimm, _busnum)
 main.add_command(initpath)
 
 @click.command()
@@ -222,9 +229,11 @@ main.add_command(checkpath)
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 @click.option('-d', '--ddimm', '_ddimm', type=str, required=True, nargs=1, help='''DDIMMs to check their sync. Write the letters of DDIMMs to reset without spaces.
                 (Examples: a, b, ab)''')
-def checksync(_busnum, _ddimm):
+
+@click.option('-f', '--freq', '_freq', type=int, default=333, nargs=1, help='Fire\'s frequency. The program will try to retrieve automatically the version. This value will be used otherwise. (default=333)')
+def checksync(_busnum, _ddimm, _freq):
     " Check for the training/syncing status of a DDIMM. "
-    fire = Fire(_busnum)
+    fire = Fire(_busnum, _freq)
     fire.check_sync(_ddimm, verbose=1)
 
 main.add_command(checksync)
@@ -233,9 +242,10 @@ main.add_command(checksync)
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 @click.option('-d', '--ddimm', '_ddimm', type=str, required=True, nargs=1, help='''DDIMMs to sync. Write the letters of DDIMMs without spaces.
                 (Examples: a, b, ab)''')
-def sync(_busnum, _ddimm):
+@click.option('-f', '--freq', '_freq', type=int, default=333, nargs=1, help='Fire\'s frequency. The program will try to retrieve automatically the version. This value will be used otherwise. (default=333)')
+def sync(_busnum, _ddimm, _freq):
     " Train/Sync the provided DDIMM with Fire. "
-    fire = Fire()
+    fire = Fire(_busnum, _freq)
     
     for i in range (0, len(_ddimm)):
         print("Sync DDIMM{}...".format(_ddimm[i].upper()), end=" ")
@@ -245,7 +255,7 @@ def sync(_busnum, _ddimm):
                 fire.retrain(_ddimm[i], verbose=1)
             continue
     
-        setup_ddimm_path(_ddimm[i])
+        setup_ddimm_path(_ddimm[i], _busnum)
         try:
             explorer = Explorer(fire.freq, _busnum)
             explorer.sync()

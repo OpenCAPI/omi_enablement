@@ -40,12 +40,12 @@ from functions import *
 #           ---------                ...      ...                                #
 #                                                                                #
 #   Muxes are accessible through I2C. 0x73 Mux is always presents on the bus.    #
-#   To open path to 0x71 mux, write 0x0 to @0x73.                                #
+#   To open path to 0x71 mux, write 0x1 to @0x73.                                #
 #   After that: to access DDIMMA, write 0x0 to 0x71, to access DDIMMB,           #
 #               write 0x1 to @0x71.                                              #
 ##################################################################################
 class Mux:
-    def __init__(self, i2c_addr, i2c_bus_num=3):
+    def __init__(self, i2c_addr, i2c_bus_num):
         self.i2c_addr = i2c_addr
         self.i2c_bus = init_bus(i2c_bus_num)
     
@@ -70,7 +70,7 @@ class Mux:
 #   Default value is 0x00 at @0x32.                                              #
 ##################################################################################
 class Pmic:
-    def __init__(self, i2c_addr, i2c_bus_num=3):
+    def __init__(self, i2c_addr, i2c_bus_num):
         self.i2c_addr = i2c_addr
         self.i2c_bus = init_bus(i2c_bus_num)
     
@@ -94,7 +94,7 @@ class Pmic:
 #   It contains useful information about the firmware of the chip.               #
 ##################################################################################
 class Eeprom:
-    def __init__(self, i2c_bus_num=3):
+    def __init__(self, i2c_bus_num):
         self.i2c_bus = init_bus(i2c_bus_num)
 
     def detect(self):
@@ -109,7 +109,7 @@ class Eeprom:
             self.i2c_bus.i2c_rdwr(msg)
             return
         except OSError as e:
-            if e.errno is 121: # Remote I/O error aka slave NAK
+            if e.errno == 121: # Remote I/O error aka slave NAK
                 pass
 
         time.sleep(0.005)
@@ -142,50 +142,50 @@ class Eeprom:
 
 
 # --------------------- Helper functions ------------------- #
-def open_path():
+def open_path(busnum):
     """ Open path from first level mux for second level mux 
         to be visible (not DDIMMs) """
-    mux = Mux(MUX2_I2C_ADDR)
+    mux = Mux(MUX2_I2C_ADDR, busnum)
     mux.i2cwrite(0x01)
 
-def close_path():
+def close_path(busnum):
     """ Close the first level mux """
-    mux = Mux(MUX2_I2C_ADDR)
+    mux = Mux(MUX2_I2C_ADDR, busnum)
     mux.i2cwrite(0x00)
 
-def set_pmics():
+def set_pmics(busnum):
     """ Activate PMICs to access the Explorer chip """
-    pmic1 = Pmic(PMIC1_I2C_ADDR)
-    pmic2 = Pmic(PMIC2_I2C_ADDR)
+    pmic1 = Pmic(PMIC1_I2C_ADDR, busnum)
+    pmic2 = Pmic(PMIC2_I2C_ADDR, busnum)
     pmic1.i2cwrite(0x80)
     pmic2.i2cwrite(0x80)
 
-def clear_pmics():
+def clear_pmics(busnum):
     """ Activate PMICs to hid the Explorer chip """
-    pmic1 = Pmic(PMIC1_I2C_ADDR)
-    pmic2 = Pmic(PMIC2_I2C_ADDR)
+    pmic1 = Pmic(PMIC1_I2C_ADDR, busnum)
+    pmic2 = Pmic(PMIC2_I2C_ADDR, busnum)
     pmic1.i2cwrite(0x00)
     pmic2.i2cwrite(0x00)
 
-def setup_ddimm_path(ddimm):
+def setup_ddimm_path(ddimm, busnum):
     """ Open path for given ddimm, only one at a time """
-    open_path()
-    mux = Mux(MUX3_I2C_ADDR)
+    open_path(busnum)
+    mux = Mux(MUX3_I2C_ADDR, busnum)
     if ddimm.lower() == "none":
         mux.i2cwrite(0x00)
     elif 'a' in ddimm.lower():
         mux.i2cwrite(1 << DDIMMA)
-        set_pmics()
+        set_pmics(busnum)
     elif 'b' in ddimm.lower():
         mux.i2cwrite(1 << DDIMMB)
-        set_pmics()
+        set_pmics(busnum)
 
-def path_status():
+def path_status(busnum):
     """ Get current path status (which DDIMM is accessible) """
-    mux1 = Mux(MUX2_I2C_ADDR)
+    mux1 = Mux(MUX2_I2C_ADDR, busnum)
     if mux1.i2cread() == 0x0: print("Path is closed.")
     if mux1.i2cread() == 0x1:
-        mux2 = Mux(MUX3_I2C_ADDR)
+        mux2 = Mux(MUX3_I2C_ADDR, busnum)
         if mux2.i2cread() == 0x0: print("No path is open for any DDIMM")
         elif mux2.i2cread() == 0x1: print("Path is set on DDIMM0/A")
         elif mux2.i2cread() == 0x2: print("Path is set on DDIMM1/B")

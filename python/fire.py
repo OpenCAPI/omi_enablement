@@ -35,12 +35,15 @@ class Fire:
     """ 
         Initialize i2c bus and get the ID and frequency of Fire 
         """
-    def __init__(self, i2c_bus_num=3):
+    def __init__(self, i2c_bus_num, freq=333):
         self.i2c_bus_num = i2c_bus_num
         self.i2c_bus = init_bus(i2c_bus_num)
         self.id, self.is_dirty = self.get_id()
-        if self.id & 0x0fffffff == FIRE_400_MHZ_VERSION_ID: self.freq = 400
-        else : self.freq = 333
+        if self.id & 0x0fffffff in FIRE_400_MHZ_VERSION_ID: self.freq = 400
+        elif self.id & 0x0fffffff in FIRE_333_MHZ_VERSION_ID: self.freq = 333
+        else: 
+            printf("Couldn't find corresponding frequency to this Fire version, continuing with {}MHz", freq)
+            self.freq = freq
     
     """ 
         Detect if Fire's i2c address is visible on the bus 

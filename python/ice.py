@@ -36,7 +36,7 @@ class Ice:
     """ 
         Initialize i2c bus and get IDs of the Gemini 
         """
-    def __init__(self, fire_freq, i2c_bus_num=3):
+    def __init__(self, fire_freq, i2c_bus_num):
         self.i2c_bus_num = i2c_bus_num
         self.i2c_bus = init_bus(i2c_bus_num)
         

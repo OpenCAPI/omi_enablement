@@ -36,7 +36,7 @@ class Explorer:
     """ 
         Initialize i2c bus and get IDs of the Explorer 
         """
-    def __init__(self, fire_freq, i2c_bus_num=3):
+    def __init__(self, fire_freq, i2c_bus_num):
         self.i2c_bus_num = i2c_bus_num
         self.i2c_bus = init_bus(i2c_bus_num)
         self.fire_freq = fire_freq
@@ -349,8 +349,8 @@ class Explorer:
             print("Training successfully done.")
             return 1
 
-        if sync_res == 0: print("Training failed with no errors found.")
-        else: self.get_errors(sync_res)
+        if sync_res == 0: print("Training failed.")
+        self.get_errors(sync_res)
 
         return 0
 
@@ -405,7 +405,7 @@ class Explorer:
 
 if __name__ == "__main__":
     # logging.basicConfig(level=logging.INFO)
-    explorer = Explorer(333)
+    explorer = Explorer(333, 3)
     # explorer.i2c_simple_write(0x0304A020B080)
     # print(hex(explorer.i2c_simple_read(0x2)))
     # explorer.i2c_simple_write(0x0404A020B080)
