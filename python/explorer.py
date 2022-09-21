@@ -36,7 +36,7 @@ class Explorer:
     """ 
         Initialize i2c bus and get IDs of the Explorer 
         """
-    def __init__(self, fire_freq, i2c_bus_num=3):
+    def __init__(self, fire_freq, i2c_bus_num):
         self.i2c_bus_num = i2c_bus_num
         self.i2c_bus = init_bus(i2c_bus_num)
         self.fire_freq = fire_freq
@@ -76,7 +76,7 @@ class Explorer:
         
         # format result and remove the MSB (0x04 indicates a read operation)
         odata = int(''.join(format(val, '02x') for val in res[1:5]), 16)
-        logging.info("Reading {:#010x} from {:#010x}".format(odata, reg_addr))
+        logging.info("Explorer Reading {:#010x} from {:#010x}".format(odata, reg_addr))
         
         return odata
 
@@ -89,7 +89,7 @@ class Explorer:
         explorer.i2c_simple_write(0304A80940B8)
         """
     def i2c_simple_write(self, data):
-        logging.info("Writing {:#010x}".format(data))
+        logging.info("Explorer Writing {:#010x}".format(data))
 
         # calculate the number of bytes in provided data 
         length = int(len(str(hex(data)))/2)
@@ -152,30 +152,34 @@ class Explorer:
         explorer.i2c_double_read(0x20B080)
         """
     def i2c_double_read(self, reg_addr):
-        bit_64 = reg_addr & (1 << 27)
+        bit_64 = reg_addr & (1 << 27)    # if bit64 this means we need to achieve 2 I2C transactions
 
         if bit_64:
             raw_reg_addr = reg_addr & ~(1 << 27)
-            new_reg_addr = (raw_reg_addr << 3) | (1 << 27) 
+            new_reg_addr = (raw_reg_addr << 3) | (1 << 27)
+            logging.info("DBG: Explorer 64bits DRead at Scom Addr: {:#010x}".format(reg_addr)) 
         else:
             raw_reg_addr = reg_addr
             new_reg_addr = reg_addr
+            logging.info("       Explorer 32bits  Read at Scom Addr: {:#010x}".format(reg_addr))
+        logging.info("       Explorer read at Register Addr:     {:#010x}".format(new_reg_addr))
 
         self.i2c_simple_write(0x0304A0000000 + new_reg_addr)
         self.i2c_simple_read(0x2)
         self.i2c_simple_write(0x0404A0000000 + new_reg_addr)
-        res_msb = self.i2c_simple_read(0x2)
+        res_msb = self.i2c_simple_read(0x2)   # MSBs of 64 or 32 bits reg content value
 
-        self.i2c_simple_read(0x2)
+        self.i2c_simple_read(0x2)   # previous command status
         
         if bit_64:
             new_reg_addr_2 = new_reg_addr + 4
+            logging.info("       Explorer read at Register Addr:     {:#010x}".format(new_reg_addr_2))
             self.i2c_simple_write(0x0304A0000000 + new_reg_addr_2)
             self.i2c_simple_read(0x2)
             self.i2c_simple_write(0x0404A0000000 + new_reg_addr_2)
-            res_lsb = self.i2c_simple_read(0x2)
+            res_lsb = self.i2c_simple_read(0x2) # LSBs of 64
 
-            self.i2c_simple_read(0x2)
+            self.i2c_simple_read(0x2) # previous command status
 
             return ((res_msb << 32) + res_lsb)
 
@@ -210,6 +214,7 @@ class Explorer:
         explorer.i2c_double_write(0x08012811, 0x0000040000000059)
         """
     def i2c_double_write(self, reg_addr, data):
+        logging.info("Explorer DWrite Reg: {:#010x} with Data:{:#010x}".format(reg_addr, data))
         bit_64 = reg_addr & (1 << 27)
 
         if bit_64:
@@ -264,6 +269,17 @@ class Explorer:
         self.i2c_double_write(0x080108E7, 0x8000000000000000)
         self.i2c_double_write(0x00002058, 0x0000000000000001)
 
+    def cfg_ddimm(self, ddimm):
+        self.getinfo()
+        print(self.card_id)
+        if self.card_id == "0x3e00008":
+            # sequence for init this card
+            #self.i2c_double_read(0x08040017)
+            #self.i2c_double_write(0x08040017, 0xf800000000000000)
+            print("programming sequence should be here")
+        elif self.card_id == "0x3e00000":
+            # sequence for init another card
+            pass
     def init(self):
         if self.fire_freq == 333: b = 0x1
         elif self.fire_freq == 400: b = 0x3
@@ -272,12 +288,21 @@ class Explorer:
             return
 
        # Execute exp_omi_setup_wrap
+       #("---------- STEP12 : Explorer  OMI Training Sequence ------------")
+       # next sleep is not clean, but we miss a criteria to check reg02 reading capability
+       # When reg 02 is not available system prevent I2C reading without crashing though
+        logging.info("---------- Step 11: exp_check_for_ready_wrap      ------------")
+        while (self.i2c_simple_read(0x2) & ~0x00ffffff ) >> 24 != 0: sleep(6)  
+        version=(self.i2c_simple_read(0x2) & ~0xff00ffff) >> 16
+        print("Explorer Firmware API version: {:#004x} Ready".format(version ))
+        logging.info("---------- Step 12 exp_omi_setup_wrap            ------------")
         self.i2c_simple_write(0x010400008090 + b)
-        logging.info("PUTI2C {}".format(hex(0x010400008090 + b)))
+        logging.info("DBG:Explorer Writing {} 4 bytes in reg 01 of Explorer".format(hex(0x010400008090 + b)))
+        logging.info("DBG:To trigger SerDes initialisation (Explorer side)")
         logging.info("Waiting status flag to change from busy...")
         while (self.i2c_simple_read(0x2) & ~0xffff00ff ) >> 8 != 0: pass
         self.i2c_simple_read(0x2)
-
+        #logging.info("---------- End of Bootconfig in Init             ------------")
         return b
 
     """ 
@@ -333,8 +358,14 @@ class Explorer:
         self.i2c_double_write(0x08012810, 0x8122640700112620)
         
         self.i2c_double_read(0x08012811)
+        
+        #("---------- Step 14 : Explorer OMI Training Sequence ------------")  ??????????
+        
+        #("---------- Step 15 : Explorer OMI Training Sequence ------------")
         self.i2c_simple_write(0x010400008190 + b)
-        logging.info("PUTI2C {}".format(hex(0x010400008190 + b)))
+        logging.info("DBG:Explorer Writing {} 4 bytes in reg 01 of Explorer".format(hex(0x010400008190 + b)))
+        logging.info("DBG:To start DL training (Explorer side)")
+        logging.info("---------- End of Step 15                         ------------")
 
     """
         This function checks if the training is done from the Explorer side.
@@ -349,8 +380,8 @@ class Explorer:
             print("Training successfully done.")
             return 1
 
-        if sync_res == 0: print("Training failed with no errors found.")
-        else: self.get_errors(sync_res)
+        if sync_res == 0: print("Training failed.")
+        self.get_errors(sync_res)
 
         return 0
 
@@ -376,12 +407,13 @@ class Explorer:
         ecid_n = int(''.join(format(val, '02x') for val in ecid), 16)
         return hex(ecid_n), hex(ese_mode_status)
 
+
     def i2cread(self, reg_addr):
         res = self.i2c_bus.read_i2c_block_data(EXP_I2C_ADDR, reg_addr, 5)
         
         # format result and remove the MSB (0x04 indicates a read operation)
         odata = int(''.join(format(val, '02x') for val in res[1:5]), 16)
-        logging.info("Reading {:#010x} from {:#010x}".format(odata, reg_addr))
+        logging.info("Explorer Reading {:#010x} from {:#010x}".format(odata, reg_addr))
         
         return odata
     
@@ -394,7 +426,7 @@ class Explorer:
         explorer.i2cwrite(0304A80940B8)
         """
     def i2cwrite(self, data):
-        logging.info("Writing {:#010x}".format(data))
+        logging.info("Explorer Writing {:#010x}".format(data))
 
         # calculate the number of bytes in provided data 
         length = int(len(str(hex(data)))/2)
@@ -405,7 +437,7 @@ class Explorer:
 
 if __name__ == "__main__":
     # logging.basicConfig(level=logging.INFO)
-    explorer = Explorer(333)
+    explorer = Explorer(333, 3)
     # explorer.i2c_simple_write(0x0304A020B080)
     # print(hex(explorer.i2c_simple_read(0x2)))
     # explorer.i2c_simple_write(0x0404A020B080)

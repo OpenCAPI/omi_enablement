@@ -1,5 +1,5 @@
 #
-# Copyright 2019 International Business Machines
+# Copyright 2022 International Business Machines
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,27 +46,31 @@ main.add_command(scan)
 
 @click.command()
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
-def init(_busnum):
-    " Initialize the explorer chip. This must be done before any other operation. "
-    fire = Fire(_busnum)
+@click.option('-f', '--freq', '_freq', type=int, default=333, nargs=1, help='Fire\'s frequency. The program will try to retrieve automatically the version. This value will be used otherwise. (default=333)')
+def init(_busnum, _freq):
+    " Initializes the explorer chip. This must be done before any other operation. "
+    fire = Fire(_busnum, _freq)
     explorer = Explorer(fire.freq, _busnum)
+    print("----------         : Explorer Initialisation    ------------")
     explorer.init()
+    #sleep(5)
 main.add_command(init)
 
 
 @click.command()
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 @click.option('-c', '--chip', '_chip', type=str, required=True, nargs=1, help='Chip to read from (FIRE or EXPLORER/ICE)')
-def info(_chip, _busnum):
-    " Get chip internal information. "
-    fire = Fire(_busnum)
+@click.option('-f', '--freq', '_freq', type=int, default=333, nargs=1, help='Fire\'s frequency. The program will try to retrieve automatically the version. This value will be used otherwise. (default=333)')
+def info(_chip, _busnum, _freq):
+    " Gets chip internal information. "
+    fire = Fire(_busnum, _freq)
     if _chip.lower() == "fire":
         print("ID:", hex(fire.id))
         print("Dirty bit:", fire.is_dirty)
         print("Frequency:", fire.freq, "MHz")
     elif _chip.lower() in ["explorer", "exp", "ice"]:
         explorer = Explorer(fire.freq, _busnum)
-        eeprom = Eeprom()
+        eeprom = Eeprom(_busnum)
         try:
             explorer.getinfo()
             explorer.get_firmware_info()
@@ -89,15 +93,18 @@ main.add_command(info)
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 @click.option('-r', '--register', '_register', type=str, required=True, nargs=1, help='Register address to read (in hex)')
 @click.option('-c', '--chip', '_chip', type=str, required=True, nargs=1, help='Chip to read from (FIRE or EXPLORER/ICE)')
-def read(_register, _chip, _busnum):
-    "Read from an internal register of a program."
+@click.option('-f', '--freq', '_freq', type=int, default=333, nargs=1, help='Fire\'s frequency. The program will try to retrieve automatically the version. This value will be used otherwise. (default=333)')
+def read(_register, _chip, _busnum, _freq):
+    "Reads from an internal register of a program."
     _register = int(_register, 16)
-    fire = Fire(_busnum)
+    fire = Fire(_busnum, _freq)
     if _chip.lower() == "fire":
-        print(hex(fire.i2cread(_register)))
+        #print(hex(fire.i2cread(_register)))
+        print("Rd Fire Addr {:#010x} : {:#016x}".format(_register,fire.i2cread(_register)))
     elif _chip.lower() in ["explorer", "exp"]:
         explorer = Explorer(fire.freq, _busnum)
-        print(hex(explorer.i2c_double_read(_register)))
+        #print(hex(explorer.i2c_double_read(_register)))
+        print("Rd Expl Addr {:#010x} : {:#016x}".format(_register,explorer.i2c_double_read(_register)))
     elif _chip.lower() in ["ice", "gemini"]:
         ice = Ice(fire.freq, _busnum)
         print(hex(ice.i2c_double_read(_register)))
@@ -107,11 +114,35 @@ main.add_command(read)
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 @click.option('-r', '--register', '_register', type=str, required=True, nargs=1, help='Register address to read (in hex)')
 @click.option('-c', '--chip', '_chip', type=str, required=True, nargs=1, help='Chip to read from (FIRE or EXPLORER/ICE)')
-def i2cread(_register, _chip, _busnum):
-    "Read from an internal register of a program."
+@click.option('-f', '--freq', '_freq', type=int, default=333, nargs=1, help='Fire\'s frequency. The program will try to retrieve automatically the version. This value will be used otherwise. (default=333)')
+@click.option('-e', '--expect', '_expect', type=str, required=False, nargs=1, help='Expected read value')
+def readexp(_register, _chip, _busnum, _freq, _expect):
+    "Reads from an internal register of a program."
+    _register = int(_register, 16)
+    _expect   = int(_expect, 16)
+    fire = Fire(_busnum, _freq)
+    if _chip.lower() == "fire":
+        #print(hex(fire.i2cread(_register)))
+        print("Rd Fire Addr {:#010x} : {:#016x}, Expect: {:#016x}".format(_register,fire.i2cread(_register),_expect))
+    elif _chip.lower() in ["explorer", "exp"]:
+        explorer = Explorer(fire.freq, _busnum)
+        #print(hex(explorer.i2c_double_read(_register)))
+        print("Rd Expl Addr {:#010x} : {:#016x}, Expect: {:#016x}".format(_register,explorer.i2c_double_read(_register), _expect))
+    elif _chip.lower() in ["ice", "gemini"]:
+        ice = Ice(fire.freq, _busnum)
+        print(hex(ice.i2c_double_read(_register)))
+main.add_command(readexp)
+
+@click.command()
+@click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
+@click.option('-r', '--register', '_register', type=str, required=True, nargs=1, help='Register address to read (in hex)')
+@click.option('-c', '--chip', '_chip', type=str, required=True, nargs=1, help='Chip to read from (FIRE or EXPLORER/ICE)')
+@click.option('-f', '--freq', '_freq', type=int, default=333, nargs=1, help='Fire\'s frequency. The program will try to retrieve automatically the version. This value will be used otherwise. (default=333)')
+def i2cread(_register, _chip, _busnum, _freq):
+    "Reads from an internal register of a program."
     _register = int(_register, 16)
     
-    fire = Fire(_busnum)
+    fire = Fire(_busnum, _freq)
     if _chip.lower() == "fire":
         print(hex(fire.i2cread(_register)))
     elif _chip.lower() in ["explorer", "exp"]:
@@ -120,7 +151,7 @@ def i2cread(_register, _chip, _busnum):
             print(hex(explorer.i2cread(_register)))
         else:
             explorer.i2cwrite(_register)
-            print(explorer.i2cread(0x2))
+            print(explorer.i2cread(0x2))     # Reg 02 will provide a check of the previous command, eg 0x1B0005 1B is FW API number, 00 is Command OK, 05 is last reg  
     elif _chip.lower() in ["ice", "gemini"]:
         ice = Ice(fire.freq, _busnum)
         print(hex(ice.i2cread(_register)))
@@ -132,34 +163,37 @@ main.add_command(i2cread)
 @click.option('-r', '--register', '_register', type=str, required=True, nargs=1, help='Register address to read (in hex)')
 @click.option('-d', '--data', '_data', type=str, required=True, nargs=1, help='Data value to write to the register (in hex)')
 @click.option('-c', '--chip', '_chip', type=str, required=True, nargs=1, help='Chip to read from (FIRE or ICE)')
-def write(_register, _data, _chip, _busnum):
-    "Write to an internal register of a program."
+@click.option('-f', '--freq', '_freq', type=int, default=333, nargs=1, help='Fire\'s frequency. The program will try to retrieve automatically the version. This value will be used otherwise. (default=333)')
+def write(_register, _data, _chip, _busnum, _freq):
+    "Writes to an internal register of a program."
     _register = int(_register, 16)
     _data = int(_data, 16)
-    fire = Fire(_busnum)
+    fire = Fire(_busnum, _freq)
     if _chip.lower() == "fire":
         res = fire.i2cwrite(_register, _data)
+        print("Wr Fire Addr {:#010x} : {:#016x}".format(_register, _data))
         print("Writing check : {}".format("Success" if res else "Failed"))
     elif _chip.lower() in ["explorer", "exp"]:
         explorer = Explorer(fire.freq, _busnum)
         res = explorer.i2c_double_write(_register, _data)
+        print("Wr Expl Addr {:#010x} : {:#016x}".format(_register, _data))
         print("Writing check : {}".format("Success" if res else "Failed"))
     elif _chip.lower() in ["ice", "gemini"]:
         ice = Ice(fire.freq, _busnum)
         print(hex(ice.i2c_double_read(_register)))
     else:
         print("Chip provided is incorrect.")
-    
 main.add_command(write)
 
 @click.command()
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 @click.option('-d', '--data', '_data', type=str, required=True, nargs=1, help='Data value to write to the register (in hex)')
 @click.option('-c', '--chip', '_chip', type=str, required=True, nargs=1, help='Chip to read from (FIRE or ICE)')
-def i2cwrite(_data, _chip, _busnum):
-    "Write to an internal register of a program."
+@click.option('-f', '--freq', '_freq', type=int, default=333, nargs=1, help='Fire\'s frequency. The program will try to retrieve automatically the version. This value will be used otherwise. (default=333)')
+def i2cwrite(_data, _chip, _busnum, _freq):
+    "Writes to an internal register of a program."
     _data = int(_data, 16)
-    fire = Fire(_busnum)
+    fire = Fire(_busnum, _freq)
     if _chip.lower() == "fire":
         res = fire.i2cwrite(_data)
         # print("Writing check : {}".format("Success" if res else "Failed"))
@@ -177,9 +211,10 @@ main.add_command(i2cwrite)
 @click.option('-d', '--ddimm', '_ddimm', type=str, required=True, nargs=1, help='''DDIMMs to reset. Write the letters of DDIMMs to reset without spaces.
                 (Examples: abcdsw, bdw, s)''')
 @click.option('-s', '--state', '_state', type=str, required=True, nargs=1, help='on: RESET ON | off: RESET OFF')
-def ddimmreset(_ddimm, _state, _busnum):
-    "Set the reset state of the DDIMMs (In RESET mode : ON | Out RESET mode : OFF)."
-    fire = Fire(_busnum)
+@click.option('-f', '--freq', '_freq', type=int, default=333, nargs=1, help='Fire\'s frequency. The program will try to retrieve automatically the version. This value will be used otherwise. (default=333)')
+def ddimmreset(_ddimm, _state, _busnum, _freq):
+    "Sets the reset state of the DDIMMs (In RESET mode : ON | Out RESET mode : OFF)."
+    fire = Fire(_busnum, _freq)
     if _state.lower() == "on": fire.set_ddimm_on_reset(_ddimm)
     elif _state.lower() == "off": fire.set_ddimm_off_reset(_ddimm)
     else : print("State provided is not supported.")
@@ -197,21 +232,20 @@ main.add_command(ddimmreset)
 @click.option('-d', '--ddimm', '_ddimm', type=str, required=True, nargs=1, help='''DDIMM (only one or none) to setup their path.
                 (Examples: a, b none)''')
 def initpath(_busnum, _ddimm):
-    " Setup path to access a provided DDIMM. "
+    " Setups I2C path to selected DDIMM. "
     if len(_ddimm) > 1 and _ddimm.lower() != "none":
         print("Please provide a valid ddimm letter (a or b) or none.")
         return
-    setup_ddimm_path(_ddimm)
+    setup_ddimm_path(_ddimm, _busnum)
+    #checkpath(_busnum)
 main.add_command(initpath)
 
 @click.command()
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 def checkpath(_busnum):
     " Gets the current path configuration. "
-    path_status()
+    path_status(_busnum)
 main.add_command(checkpath)
-
-
 
 #########################################################
 #                                                       #
@@ -222,9 +256,11 @@ main.add_command(checkpath)
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 @click.option('-d', '--ddimm', '_ddimm', type=str, required=True, nargs=1, help='''DDIMMs to check their sync. Write the letters of DDIMMs to reset without spaces.
                 (Examples: a, b, ab)''')
-def checksync(_busnum, _ddimm):
-    " Check for the training/syncing status of a DDIMM. "
-    fire = Fire(_busnum)
+
+@click.option('-f', '--freq', '_freq', type=int, default=333, nargs=1, help='Fire\'s frequency. The program will try to retrieve automatically the version. This value will be used otherwise. (default=333)')
+def checksync(_busnum, _ddimm, _freq):
+    " Checks for the training/syncing status of a DDIMM. "
+    fire = Fire(_busnum, _freq)
     fire.check_sync(_ddimm, verbose=1)
 
 main.add_command(checksync)
@@ -233,10 +269,11 @@ main.add_command(checksync)
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 @click.option('-d', '--ddimm', '_ddimm', type=str, required=True, nargs=1, help='''DDIMMs to sync. Write the letters of DDIMMs without spaces.
                 (Examples: a, b, ab)''')
-def sync(_busnum, _ddimm):
-    " Train/Sync the provided DDIMM with Fire. "
-    fire = Fire()
-    
+@click.option('-f', '--freq', '_freq', type=int, default=333, nargs=1, help='Fire\'s frequency. The program will try to retrieve automatically the version. This value will be used otherwise. (default=333)')
+def sync(_busnum, _ddimm, _freq):
+    " Trains/Syncs the provided DDIMM with Fire. "
+    fire = Fire(_busnum, _freq)
+
     for i in range (0, len(_ddimm)):
         print("Sync DDIMM{}...".format(_ddimm[i].upper()), end=" ")
         if fire.check_sync(_ddimm[i]):
@@ -245,19 +282,207 @@ def sync(_busnum, _ddimm):
                 fire.retrain(_ddimm[i], verbose=1)
             continue
     
-        setup_ddimm_path(_ddimm[i])
+        setup_ddimm_path(_ddimm[i], _busnum)
+        #checkpath(_busnum)
         try:
             explorer = Explorer(fire.freq, _busnum)
+            print("\n----------        Explorer OMI Training Sequence ------------")
             explorer.sync()
             sleep(1)
+            print("\n----------        Fire     OMI Training Sequence ------------")
             fire.sync(_ddimm[i])
-            print("DDIMM{} sync: ".format(_ddimm[i].upper()), end="")
+            print("DDIMM{} sync Reg: ".format(_ddimm[i].upper()), end="")
             sleep(1)
             explorer.check_sync()
         except Exception as e:
+            print(traceback.format_exc())
             print("Error. Please make sure you ran init command first (After a reset and initpath).")
     
 main.add_command(sync)
+
+
+#########################################################
+#                                                       #
+#                  DDIMM CONFIGURATION                  #
+#                                                       #
+#########################################################
+@click.command()
+@click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
+@click.option('-d', '--ddimm', '_ddimm', type=str, required=True, nargs=1, help='''DDIMMs to sync. Write the letters of DDIMMs without spaces.
+                (Examples: a, b, ab)''')
+@click.option('-f', '--freq', '_freq', type=int, default=333, nargs=1, help='Fire\'s frequency. The program will try to retrieve automatically the version. This value will be used otherwise. (default=333)')
+def ddimmcfg(_busnum, _ddimm, _freq):
+    " Configures the provided DDIMM with Fire. "
+    fire = Fire(_busnum, _freq)
+
+    for i in range (0, len(_ddimm)):
+        if _ddimm[i] == "a":
+            ddimm_add_adj=0x00000000
+        elif _ddimm[i] == "b":
+            ddimm_add_adj=0x00000400
+        else: print("ERROR: incorrect ddimm selection !!")
+
+        explorer = Explorer(fire.freq, _busnum)
+        eeprom   = Eeprom(_busnum)
+
+        print("   ------------    \nConfiguring DDIMM{}...".format(_ddimm[i].upper()), end=" \n")
+        setup_ddimm_path(_ddimm[i], _busnum)
+        print("DDIMM{} Configuration ".format(_ddimm[i].upper()), end="\n")
+        """getting Memory size """
+        eeprom = Eeprom(_busnum)
+        _memory_size = eeprom.get_info()
+        """ getting Vendor ID in Fire's reg : 0x2001040X00000000 with 
+        0x10000006361014 for IBM 
+        0xff010002ff010002 for SMART
+        doesn't work properly
+        Using alternative method"""
+                
+        """vendor_reg = explorer.i2c_double_read(0x20b080)
+        logging.info(hex(vendor_reg))
+        if (vendor_reg == 0x00000000000796): _vendor = "SMART"
+        elif (vendor_reg == 0x00000000000596) or (vendor_reg == 0x00000000000197):_vendor = "IBM"
+        else:print("ERROR: Bad Vendor ID :")
+        print("Vendor      :", end=" ")
+        print(_vendor)
+        logging.info(hex(ddimm_add_adj))"""
+
+        data = eeprom.get_info()
+        _memory_size = data[0]
+        _vendor = data[1]
+
+
+        fire.reg_ops(fire.steps2122, _ddimm[i], _vendor, _memory_size)
+        fire.reg_ops(fire.steps25_a0, _ddimm[i], _vendor, _memory_size)
+
+        if _vendor == "IBM":
+            fire.reg_ops(fire.steps25_a1_IBM, _ddimm[i], _vendor, _memory_size)
+        elif _vendor == "SMART":
+            fire.reg_ops(fire.steps25_a1_SMART, _ddimm[i], _vendor, _memory_size)
+        else: print("ERROR: Unknown Vendor ID"); return 1
+    
+        fire.reg_ops(fire.steps25_a2, _ddimm[i], _vendor, _memory_size)
+
+        if _memory_size == 32:
+            fire.reg_ops(fire.steps25_a3_32, _ddimm[i], _vendor, _memory_size)
+        elif _memory_size == 64:
+            fire.reg_ops(fire.steps25_a3_64, _ddimm[i], _vendor, _memory_size)
+        else: print("ERROR: Bad Memory size"); return 1
+
+        fire.reg_ops(fire.steps25_a4, _ddimm[i], _vendor, _memory_size)
+
+        if _memory_size == 32:
+            fire.reg_ops(fire.steps25_a5_32, _ddimm[i], _vendor, _memory_size)
+        elif _memory_size == 64:
+            fire.reg_ops(fire.steps25_a5_64, _ddimm[i], _vendor, _memory_size)
+    
+        fire.reg_ops(fire.steps25_a6, _ddimm[i], _vendor, _memory_size)
+
+        if _memory_size == 32:
+            fire.reg_ops(fire.steps25_a7_32, _ddimm[i], _vendor, _memory_size)
+        elif _memory_size == 64:
+            fire.reg_ops(fire.steps25_a7_64, _ddimm[i], _vendor, _memory_size)
+
+        fire.reg_ops(fire.steps25_a8, _ddimm[i], _vendor, _memory_size)
+
+        if _vendor == "IBM":
+            fire.reg_ops(fire.steps25_a9_IBM, _ddimm[i], _vendor, _memory_size)
+        elif _vendor == "SMART":
+            fire.reg_ops(fire.steps25_a9_SMART, _ddimm[i], _vendor, _memory_size)
+    
+        fire.reg_ops(fire.steps25_a10, _ddimm[i], _vendor, _memory_size)   
+
+        if (_vendor == "IBM") & (_memory_size == 32):
+            fire.reg_ops(fire.steps25_a11_IBM_32, _ddimm[i], _vendor, _memory_size)
+        elif (_vendor == "IBM") & (_memory_size == 64):
+            fire.reg_ops(fire.steps25_a11_IBM_64, _ddimm[i], _vendor, _memory_size)
+        elif (_vendor == "SMART") & (_memory_size == 32):
+            fire.reg_ops(fire.steps25_a11_SMART_32, _ddimm[i], _vendor, _memory_size)
+        elif (_vendor == "SMART") & (_memory_size == 64):
+            fire.reg_ops(fire.steps25_a11_SMART_64, _ddimm[i], _vendor, _memory_size)
+
+        check_status(_busnum, _ddimm[i], _freq)
+
+        fire.reg_ops(fire.steps25_b, _ddimm[i], _vendor, _memory_size)
+
+        if _memory_size == 32:
+            fire.reg_ops(fire.step26_a0_32, _ddimm[i], _vendor, _memory_size)
+        elif _memory_size == 64:
+            fire.reg_ops(fire.step26_a0_64, _ddimm[i], _vendor, _memory_size)
+
+        fire.reg_ops(fire.step26_a1, _ddimm[i], _vendor, _memory_size)
+
+        if _vendor == "IBM":
+            fire.reg_ops(fire.step26_a2_IBM, _ddimm[i], _vendor, _memory_size)
+        elif _vendor == "SMART":
+            fire.reg_ops(fire.step26_a2_SMART, _ddimm[i], _vendor, _memory_size)
+
+        fire.reg_ops(fire.steps26_a3, _ddimm[i], _vendor, _memory_size)
+
+        if (_vendor == "IBM") & (_memory_size == 32):
+            fire.reg_ops(fire.steps26_a4_IBM_32, _ddimm[i], _vendor, _memory_size)
+        elif (_vendor == "IBM") & (_memory_size == 64):
+            fire.reg_ops(fire.steps26_a4_IBM_64, _ddimm[i], _vendor, _memory_size)
+        elif (_vendor == "SMART") & (_memory_size == 32):
+            fire.reg_ops(fire.steps26_a4_SMART_32, _ddimm[i], _vendor, _memory_size)
+        elif (_vendor == "SMART") & (_memory_size == 64):
+            fire.reg_ops(fire.steps26_a4_SMART_64, _ddimm[i], _vendor, _memory_size)
+
+
+        check_status(_busnum, _ddimm[i], _freq)
+
+        fire.reg_ops(fire.steps_26b0, _ddimm[i], _vendor, _memory_size)
+
+        if _vendor == "IBM":
+            fire.reg_ops(fire.steps_26b1_IBM, _ddimm[i], _vendor, _memory_size)
+        elif _vendor == "SMART":
+            fire.reg_ops(fire.steps_26b1_SMART, _ddimm[i], _vendor, _memory_size)
+
+        fire.reg_ops(fire.steps_26b2, _ddimm[i], _vendor, _memory_size)
+        fire.reg_ops(fire.steps27_a0, _ddimm[i], _vendor, _memory_size)
+
+        if _memory_size == 32:
+            fire.reg_ops(fire.steps27_a1_32, _ddimm[i], _vendor, _memory_size)
+        elif _memory_size == 64:
+            fire.reg_ops(fire.steps27_a1_64, _ddimm[i], _vendor, _memory_size)
+
+        fire.reg_ops(fire.steps27_a2, _ddimm[i], _vendor, _memory_size)
+
+
+        try:
+            explorer = Explorer(fire.freq, _busnum)
+
+        except Exception as e:
+            print(traceback.format_exc())
+            print("Error. Please make sure you ran init command first (After a reset and initpath).")
+
+main.add_command(ddimmcfg)
+
+#########################################################
+#                                                       #
+#                  CHECKER                              #
+#                                                       #
+#########################################################
+
+def check_status(_busnum, _ddimm, _freq):
+    fire = Fire(_busnum, _freq)
+    explorer = Explorer(fire.freq, _busnum)    
+    logging.info(_ddimm)
+    if _ddimm == "a":
+        ddimm_add_adj=0x00000000
+    elif _ddimm == "b":
+        ddimm_add_adj=0x00000400
+    else: print("ERROR: incorrect ddimm selection !!")
+
+    c = 0
+    while (hex(fire.i2cread(0x2001000100002058+(ddimm_add_adj<<32))) != "0x1"):
+        logging.info("waiting for response RDY")
+        sleep(1)
+        c=c+1
+        if (c == 50):
+            return 1
+    logging.info("0x2058 is : " + hex(fire.i2cread(0x2001000100002058+(ddimm_add_adj<<32))))
+    if fire.i2cread(0x300100010103FF20+(ddimm_add_adj<<32)) != 1: logging.info("Failure 0x30010x010103FF20 is not 0x1 !!"); return 1
+
 
 
 
