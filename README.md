@@ -11,4 +11,4 @@ An example of OMI setup on a FMC+ development board
 * petalinux contains the petalinux configurations files
 * python contains the python sources of main testing routines
 
-Check further information on temporary documentation at: https://acastellane.github.io/omi-doc/blocs/enablement/
+Check further information at: https://OpenCAPI.github.io/omi-doc/blocs/enablement/
