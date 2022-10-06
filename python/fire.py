@@ -44,16 +44,16 @@ class Fire:
 		#logging.info('{:#03x} {}'.format(self.freq_def))
 		#logging.info("freq_def =", self.freq_def)
 		if (self.freq_def == 0):
-			print("WARNING: Old version of code used, doesn't contain OMI link speed")
+			print("WARNING: Old version of VHDL used, doesn't contain OMI link speed")
 			logging.info("         trying to find an old correspondence")
 			if self.id & 0x0fffffff in FIRE_400_MHZ_VERSION_ID: self.freq = 400; logging.info("Freq set to 400MHz")
 			elif self.id & 0x0fffffff in FIRE_333_MHZ_VERSION_ID: self.freq = 333; logging.info("Freq set to 333MHz")
 			else:
 				print("Couldn't find corresponding frequency to this Fire version, continuing with %3dMHz" %(freq))
 				self.freq = freq
-		elif (self.freq_def == 0x001): logging.info("frequency is 333MHz");self.freq = 333
-		elif (self.freq_def == 0x010): logging.info("frequency is 366MHz");self.freq = 366
-		elif (self.freq_def == 0x011): logging.info("frequency is 400MHz");self.freq = 400
+		elif (self.freq_def == 0b001): logging.info("frequency is 333MHz");self.freq = 333
+		elif (self.freq_def == 0b010): logging.info("frequency is 366MHz");self.freq = 366
+		elif (self.freq_def == 0b011): logging.info("frequency is 400MHz");self.freq = 400
 		else: print("WARNING: No proper frequency setting found")
 		
 	""" 
@@ -442,8 +442,8 @@ class Fire:
 		'R'	,0x300100014008A0B8	,0x4848121284842121	,"",
 	)
 
-	steps25_a1_IBM = ("steps25_a1_IBM",
-		'W'	,0x300100014008A0B8	,0x5A0000005A000000	,"IBM",
+	steps25_a1_MICRON = ("steps25_a1_MICRON",
+		'W'	,0x300100014008A0B8	,0x5A0000005A000000	,"MICRON",
 		)
 
 	steps25_a1_SMART = ("steps25_a1_SMART",
@@ -534,7 +534,7 @@ class Fire:
 		'W'	,0x300100010102FF30	,0x0014000F001C0022	,"",
 		'W'	,0x300100010102FF38	,0x0078000D0014000C	,"",
 	)
-	steps25_a9_IBM = ("steps25_a9_IBM",
+	steps25_a9_MICRON = ("steps25_a9_MICRON",
 		'W'	,0x300100010102FF40	,0x0000000000220022	,"",
 		'W'	,0x300100010102FF48	,0x0000000000780078	,"",
 		'W'	,0x300100010102FF50	,0x0000000000000000	,"",
@@ -566,7 +566,7 @@ class Fire:
 		'W'	,0x2001000100002058	,0x0000000000000001	,"",
 	)
 
-	steps25_a11_IBM_32 = ("steps25_a11_IBM_32",
+	steps25_a11_MICRON_32 = ("steps25_a11_MICRON_32",
 		'W'	,0x300100010103FF40	,0x0000009342430102	,"",
 		'W'	,0x300100010103FF48	,0x00000000CE766AE8	,"",
 		'W'	,0x300100010103FF50	,0x0000000000000000	,"",
@@ -580,7 +580,7 @@ class Fire:
 		'R'	,0x2001000100002058	,0x0000000000000001	,"",
 		) 
 
-	steps25_a11_IBM_64 = ("steps25_a11_IBM_64",
+	steps25_a11_MICRON_64 = ("steps25_a11_MICRON_64",
 		'W'	,0x300100010103FF40	,0x0000009342430102	,"",
 		'W'	,0x300100010103FF48	,0x0000000034F60CD5	,"",
 		'W'	,0x300100010103FF50	,0x0000000000000000	,"",
@@ -664,7 +664,7 @@ class Fire:
 	step26_a0_32 = steps25_a7_32
 	step26_a0_64 = steps25_a7_64
 	step26_a1 = steps25_a8
-	step26_a2_IBM = steps25_a9_IBM
+	step26_a2_MICRON = steps25_a9_MICRON
 	step26_a2_SMART = steps25_a9_SMART
 
 	steps26_a3 = ("steps26_a3",
@@ -672,7 +672,7 @@ class Fire:
 		'W'	,0x2001000100002058	,0x0000000000000001	,"",
 	)
 
-	steps26_a4_IBM_32 = ("steps26_a4_IBM_32",
+	steps26_a4_MICRON_32 = ("steps26_a4_MICRON_32",
 		'W'	,0x300100010103FF40	,0x0000009342440102	,"",			
 		'W'	,0x300100010103FF48	,0x00000000CE766AE8	,"",			
 		'W'	,0x300100010103FF50	,0x0000000000000000	,"",			
@@ -683,7 +683,7 @@ class Fire:
 		'W'	,0x300100010103FF78	,0x821B296600000000	,"",
 		'W'	,0x3001000140084730	,0x8000000000000000	,"",
 	)
-	steps26_a4_IBM_64 = ("steps26_a4_IBM_64",
+	steps26_a4_MICRON_64 = ("steps26_a4_MICRON_64",
 		'W'	,0x300100010103FF40	,0x0000009342440102	,"",			
 		'W'	,0x300100010103FF48	,0x0000000034F60CD5	,"",			
 		'W'	,0x300100010103FF50	,0x0000000000000000	,"",			
@@ -745,7 +745,7 @@ class Fire:
 		'W'	,0x300100014008C1A8		,0x02EE000000000001	,"",
 	)
 
-	steps_26b1_IBM = ("steps_26b1_IBM",
+	steps_26b1_MICRON = ("steps_26b1_MICRON",
 		'W'	,0x300100014008C0B0		,0x0D4028F044000000	,"",
 		'W'	,0x300100014008C1B0		,0x0018000000000002	,"",
 		'W'	,0x300100014008C0B8		,0x0D4028F088000000	,"",

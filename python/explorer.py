@@ -185,6 +185,20 @@ class Explorer:
 
         else: return res_msb
 
+    def i2c_simple_readreg(self, reg_addr):
+        raw_reg_addr = reg_addr
+        new_reg_addr = reg_addr
+        logging.info("       Explorer read at Register Addr:     {:#010x}".format(new_reg_addr))
+
+        self.i2c_simple_write(0x0304A0000000 + new_reg_addr)
+        self.i2c_simple_read(0x2)
+        self.i2c_simple_write(0x0404A0000000 + new_reg_addr)
+        res_msb = self.i2c_simple_read(0x2)   # MSBs of 64 or 32 bits reg content value
+
+        self.i2c_simple_read(0x2)   # previous command status
+        
+        return res_msb
+
     """
         Equivalent to i2c_double_write in CRONUS
         i2c_double_write   : explorer:k0:n0:s0:p00 : 08012811             0000040000000059
@@ -213,6 +227,30 @@ class Explorer:
 
         explorer.i2c_double_write(0x08012811, 0x0000040000000059)
         """
+    def i2c_simple_writereg(self, reg_addr, data):
+        logging.info("Explorer DWrite Reg: {:#010x} with Data:{:#010x}".format(reg_addr, data))
+        
+        left_reg_addr = (reg_addr >> 3) << 3
+        right_reg_addr = left_reg_addr + 4
+
+        if left_reg_addr == reg_addr:
+            r_data = self.i2c_simple_readreg(right_reg_addr)
+            data_left = data & 0xffffffff
+            data_right = r_data & 0xffffffff
+        else:
+            r_data = self.i2c_simple_readreg(left_reg_addr)
+            data_left = r_data & 0xffffffff
+            data_right = data & 0xffffffff
+
+
+        self.i2c_simple_write(0x0508A000000000000000 + (left_reg_addr << 32) + data_left)
+        self.i2c_simple_read(0x2)
+        self.i2c_simple_write(0x0508A000000000000000 + (right_reg_addr << 32) + data_right)
+        self.i2c_simple_read(0x2)
+        
+        r_data = self.i2c_simple_readreg(reg_addr)
+        return (r_data == data)
+
     def i2c_double_write(self, reg_addr, data):
         logging.info("Explorer DWrite Reg: {:#010x} with Data:{:#010x}".format(reg_addr, data))
         bit_64 = reg_addr & (1 << 27)
@@ -238,8 +276,9 @@ class Explorer:
         r_data = self.i2c_double_read(reg_addr)
         return (r_data == data)
 
+
     """ 
-        Retreive explorer firmware info 
+        Retrieve explorer firmware info 
         """
     def get_firmware_info(self):
         logging.info("Retreiving firmware info, please wait... ")

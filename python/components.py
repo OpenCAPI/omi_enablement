@@ -129,7 +129,7 @@ class Eeprom:
             data = self.i2cread(reg)
             res.append(data)
         odata = int(''.join(format(val, '02x') for val in res[:]), 16)
-        print("Reading {:#010x}".format(odata))
+        print("First Bytes {:#010x}...".format(odata))
         return res
     
     def get_info(self):        
@@ -141,12 +141,22 @@ class Eeprom:
         print("Memory Size : {}GB".format(memory_size))
         
         """read vendor ID"""
+        # Bytes 1 changes but is not representing Vendor ID
         data = self.i2cread(0x1)
         vendor = "UNKNOWN"
         if data == 0x9: vendor = "IBM"
         elif data == 0x4: vendor = "SMART"
         else: vendor = "UNKNOW Memory code"
-        print("Vendor      :",vendor)
+        logging.info("Old Vendor  :",vendor)
+        
+        logging.info("bytes 512(0x200), 513(0x201) contain Manuf ID : MICRON = 0x802C, SAMSUNG = 0x80CE, SMART = 0x0194)")
+        data = (self.i2cread(512) << 8) + (self.i2cread(513))
+        logging.info("Manuf ID: {:#006x}".format(data))
+        if data == 0x802C: vendor = "MICRON"
+        elif data == 0x80CE: vendor = "SAMSUNG"
+        elif data == 0x0194: vendor = "SMART"
+        else: vendor = "UNKNOW NEW Memory code" 
+        print("Vendor      :",vendor)       
 
         ddimm_info = (memory_size, vendor)     
         return ddimm_info
@@ -166,6 +176,7 @@ def close_path(busnum):
     mux = Mux(MUX2_I2C_ADDR, busnum)
     mux.i2cwrite(0x00)
 
+"""Information regarding the I2C commands for the DDIMM PMICs is available in the JEDEC Standard Document JESD301-1A available here: https://www.jedec.org/standards-documents/docs/jesd301-1a"""
 def set_pmics(busnum):
     """ Activate PMICs to access the Explorer chip """
     pmic1 = Pmic(PMIC1_I2C_ADDR, busnum)
