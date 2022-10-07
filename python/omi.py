@@ -31,8 +31,8 @@ from constants import *
 from functions import *
 from fbist import *
 import csv
-import sys
 import traceback
+import signal
 
 
 revision = "1.1"
@@ -42,13 +42,30 @@ revision = "1.1"
 def main(log):
     if log : logging.basicConfig(level=logging.INFO)
 
+#########################################################
+#                   Providing version                   #
+#########################################################
 @click.command()
 def version():
     "Provides code version"
     print("Version:", revision)
+    logging.info("Version:1.1 adds Firmware update and Fbist features")
 
 main.add_command(version)
 
+#########################################################
+#                   Handling CTL C                      #
+#########################################################
+def handler(signum, frame):
+    res = input("\nCtrl-c was pressed. Do you really want to exit? y/n ")
+    if res == 'y':
+        exit(1)
+ 
+signal.signal(signal.SIGINT, handler)
+
+#########################################################
+#                   Scaning the I2C bus                 #
+#########################################################
 @click.command()
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 def scan(_busnum):
@@ -68,7 +85,9 @@ def init(_busnum, _freq):
     #sleep(5)
 main.add_command(init)
 
-
+#########################################################
+#          Providing information on selected chip       #
+#########################################################
 @click.command()
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 @click.option('-c', '--chip', '_chip', type=str, required=True, nargs=1, help='Chip to read from (FIRE or EXPLORER/ICE)')
@@ -100,7 +119,9 @@ def info(_chip, _busnum, _freq):
         print("Chip provided is incorrect.")
 main.add_command(info)
 
-
+#########################################################
+#                   Reading Chip Register               #
+#########################################################
 @click.command()
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 @click.option('-r', '--register', '_register', type=str, required=True, nargs=1, help='Register address to read (in hex)')
@@ -122,6 +143,9 @@ def read(_register, _chip, _busnum, _freq):
         print(hex(ice.i2c_double_read(_register)))
 main.add_command(read)
 
+#########################################################
+#             Reading single internal Explorer Reg      #
+#########################################################
 @click.command()
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 @click.option('-r', '--register', '_register', type=str, required=True, nargs=1, help='Register address to read (in hex)')
@@ -140,7 +164,9 @@ def readreg(_register, _chip, _busnum, _freq):
         print(hex(ice.i2c_double_read(_register)))
 main.add_command(readreg)
 
-
+#########################################################
+#             Reading Chip Reg with expected Value      #
+#########################################################
 @click.command()
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 @click.option('-r', '--register', '_register', type=str, required=True, nargs=1, help='Register address to read (in hex)')
@@ -164,6 +190,9 @@ def readexp(_register, _chip, _busnum, _freq, _expect):
         print(hex(ice.i2c_double_read(_register)))
 main.add_command(readexp)
 
+#########################################################
+#             Reading I2C Register                      #
+#########################################################
 @click.command()
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 @click.option('-r', '--register', '_register', type=str, required=True, nargs=1, help='Register address to read (in hex)')
@@ -188,7 +217,9 @@ def i2cread(_register, _chip, _busnum, _freq):
         print(hex(ice.i2cread(_register)))
 main.add_command(i2cread)
 
-
+#########################################################
+#                   Reading Chip Register               #
+#########################################################
 @click.command()
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 @click.option('-r', '--register', '_register', type=str, required=True, nargs=1, help='Register address to read (in hex)')
@@ -216,6 +247,10 @@ def write(_register, _data, _chip, _busnum, _freq):
         print("Chip provided is incorrect.")
 main.add_command(write)
 
+
+#########################################################
+#             Write single internal Explorer reg        #
+#########################################################
 @click.command()
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 @click.option('-r', '--register', '_register', type=str, required=True, nargs=1, help='Register address to read (in hex)')
@@ -240,7 +275,9 @@ def writereg(_register, _data, _chip, _busnum, _freq):
 main.add_command(writereg)
 
 
-
+#########################################################
+#             Writing I2C Register                      #
+#########################################################
 @click.command()
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 @click.option('-d', '--data', '_data', type=str, required=True, nargs=1, help='Data value to write to the register (in hex)')
@@ -262,6 +299,9 @@ def i2cwrite(_data, _chip, _busnum, _freq):
     
 main.add_command(i2cwrite)
 
+#########################################################
+#             Reseting selected DDIMM through Fire      #
+#########################################################
 @click.command()
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 @click.option('-d', '--ddimm', '_ddimm', type=str, required=True, nargs=1, help='''DDIMMs to reset. Write the letters of DDIMMs to reset without spaces.
@@ -278,9 +318,7 @@ def ddimmreset(_ddimm, _state, _busnum, _freq):
 main.add_command(ddimmreset)
 
 #########################################################
-#                                                       #
-#                   DDIMMs Path                         #
-#                                                       #
+#                   Selecting DDIMMs Path               #
 #########################################################
 
 @click.command()
@@ -304,9 +342,7 @@ def checkpath(_busnum):
 main.add_command(checkpath)
 
 #########################################################
-#                                                       #
 #                       SYNCING                         #
-#                                                       #
 #########################################################
 @click.command()
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
@@ -358,9 +394,7 @@ main.add_command(sync)
 
 
 #########################################################
-#                                                       #
 #                  DDIMM CONFIGURATION                  #
-#                                                       #
 #########################################################
 @click.command()
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
@@ -518,9 +552,7 @@ def ddimmcfg(_busnum, _ddimm, _freq):
 main.add_command(ddimmcfg)
 
 #########################################################
-#                                                       #
 #                  CHECKER                              #
-#                                                       #
 #########################################################
 
 def check_status(_busnum, _ddimm, _freq):
@@ -544,7 +576,6 @@ def check_status(_busnum, _ddimm, _freq):
     if fire.i2cread(0x300100010103FF20+(ddimm_add_adj<<32)) != 1: logging.info("Failure 0x30010x010103FF20 is not 0x1 !!"); return 1
 
 #########################################################
-#                                                       #
 #                  FBIST CONFIGURATION                  #
 #           eg python3 omi.py --log fbistcfg -d a """   #
 #########################################################
@@ -564,18 +595,18 @@ def fbistcfg(_busnum, _ddimm, _freq):
 main.add_command(fbistcfg)
 
 #########################################################
-#                                                       #
 #                  Firware Update                       #
 #           eg python3 omi.py firmudpt -d a       #
 #########################################################
+# Firmware was reverse engineered from Cronus loading routine
+# the reg dump was processed in excel tp extract the list of writes / checking sequences.
+# last reads were suppressed as they generate an I2C erros.
 @click.command()
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
 @click.option('-d', '--ddimm', '_ddimm', type=str, required=True, nargs=1, help='''DDIMMs to sync (only a is supported)''')
 @click.option('-f', '--freq', '_freq', type=int, default=333, nargs=1, help='Fire\'s frequency. The program will try to retrieve automatically the version. This value will be used otherwise. (default=333)')
 def firmupd(_busnum, _ddimm, _freq):
-    " Loads firmware on selected DDIMM. "
-    fire = Fire(_busnum, _freq)
-    explorer = Explorer(fire.freq, _busnum) 
+    " Loads firmware on DDIMM A only. "
 
     if _ddimm == "a":
         ddimm_add_adj=0x00000000
@@ -583,11 +614,7 @@ def firmupd(_busnum, _ddimm, _freq):
         print("WARNING : Update has been tested only on DDIMM A !"); return 1;
         ddimm_add_adj=0x00000400  # not being used yet !
     else: print("ERROR: incorrect ddimm selection !!")
-    
-    print("----------------------------------\nCurrent Firmware information:\n")
-    explorer.getinfo()
-    explorer.get_firmware_info()
-    
+
     firmware_file = "./CL444714.seq"
     print("\n----------------------------------\nFirmware update with",firmware_file,"code\n")
     f = open(firmware_file, "r")
@@ -595,41 +622,45 @@ def firmupd(_busnum, _ddimm, _freq):
     with f:
         for count, line in enumerate(f):
             pass
-    print('Total Lines', count + 1,'\nFirmware update is not optimised and can take more than 1 hour with software I2C ...')
-    print('Both comments and progression data have been removed to limit the update time !')
+    print('Total Lines', count + 1,'\nUpdate will take several minutes with software I2C ...')
+    print('Both comments and progression data might freeze !')
     nblines = count +1
+    print(nblines)
     f.close()
-    if nblines != 487250:
+    if nblines != 243622:
         print("ERROR: Firmware file is corrupted: Bad number of firmware lines")
         return 1
 
-    l = 0 # number of lines
+    fire = Fire(_busnum, _freq)
+    explorer = Explorer(fire.freq, _busnum)     
+    print("----------------------------------\nCurrent Firmware information:\n")
+    explorer.getinfo()
+    explorer.get_firmware_info()
+    
+    l = 1 # number of lines
     r = 0 # number of reads
     
-    with open('CL444714.seq') as f:
+    with open(firmware_file) as f:
         for line in f:
-            #if (l == 10000):break
             l=l+1
-            '''if (l % 5000): 
-                sys.stdout.write(".")
-                sys.stdout.flush()'''
+            #if (l % 500) == 0: print("\r",l, end='')
             line = line.split()
             RW = line[0]
             data = line[2]
             data_int=int(data, 0)
+            #print("{:#018x}".format(data_int))
             #logging.info("data_int {:#018x}".format(data_int))
             if 'W' in RW:
                 #logging.info("WRITING EXPLORER REG: " + "0x{:0>16x}".format(data_int) )
                 explorer.i2c_simple_write(data_int);
                 #print("response is ,{:#018x}".format(explorer.i2c_simple_read(0x2)))
             elif 'R' in RW:
-                if data_int == 0x404A0002058:
-                    '''p=r/11701
-                    pr = (round(p,1) % 2)
-                    if pr == 0:
-                        rprt = round(p, 1)
-                        print("\rRound(p,1) = ",round(p,1),"(round(p,1) % 2) = ", pr ,"Line :", r, "Progress             : ",rprt, "%", end='', flush=True)'''
+                if 'A0002058' in data:
                     r=r+1
+                    p=r/2973*100    # we use the number of reads to avoid counting for each line
+                    rprt = round(p, 1)
+                    if (rprt % 2) == 0:
+                        print("\rLine :", l, "/",nblines, "(",rprt, "%)", end='', flush=True)
                     # initial read steps for 0x404A0002058
                     explorer.i2c_simple_write(0x0304A0002058);
                     #explorer.i2c_simple_read(0x2);
@@ -637,22 +668,24 @@ def firmupd(_busnum, _ddimm, _freq):
                     fc = 0  # number of failing tests
                     while (hex(explorer.i2c_simple_read(0x2)) != "0x1"):
                         #logging.info("waiting for response RDY")
+                        #print("waiting for response RDY")
                         #preparing next read steps for 0x404A0002058
                         explorer.i2c_simple_write(0x0304A0002058);
                         #explorer.i2c_simple_read(0x2);
                         explorer.i2c_simple_write(0x0404A0002058);
-                        sleep(1);  # allow 1 sec to obtain firmware readyness
+                        sleep(0.01);  # allow 10ms to obtain firmware readyness
                         fc=fc+1;
                         #logging.info(fc);
                         if (fc == 10):
                             print("10 failing tests on 0x4040A0002058 test for 0x1");print("line is:",l);return 1
                     #debug read check for user
-                    #explorer.i2c_simple_write(0x0304A0002058);
+                    #explorer.i2c_simple_write(0x0304A00002058);
                     #explorer.i2c_simple_read(0x2);
                     #explorer.i2c_simple_write(0x0404A0002058);
                     #logging.info("0x0404A0002058 read response is ,{:#018x}".format(explorer.i2c_simple_read(0x2)));
 
-                elif data_int == 0x0304A103FF20:
+                elif 'A103FF20' in data:
+                    #print("Checking FF20")
                     explorer.i2c_simple_write(0x0304A103FF20);
                     #explorer.i2c_simple_read(0x2);
                     explorer.i2c_simple_write(0x0404A103FF20);
@@ -663,11 +696,8 @@ def firmupd(_busnum, _ddimm, _freq):
                         #logging.info("byte 0 of 0x0404A103FF20 is 00")
                     else: print("ERROR : byte 0 of 0x0404A103FF20 is not 00");print("Error occured at line is:",l); return 1
     
-    print("\n----------------------------------\nCurrent Firmware information:\n")
-    explorer.getinfo()
-    explorer.get_firmware_info()
-    
-    print("\nEnd of firmware update\nYou might need to restart the DDIMM several times\nCheck update with: python3 omy.py info -c explorer")
+    # all I2C operations seem locked for a while at this level.
+    print("\nEnd of firmware update.\nI2C operations are not possible during the firmware update for a while.\nYou might need to restart the DDIMM several times\nFurther check update with: python3 omy.py info -c explorer")
                                         
 
 main.add_command(firmupd)
