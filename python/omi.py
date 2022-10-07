@@ -35,7 +35,7 @@ import traceback
 import signal
 
 
-revision = "1.1"
+revision = "1.2"
 
 @click.group()
 @click.option('--log/--no-log', default=False, help='Display more info about the execution of the command.')
@@ -49,7 +49,7 @@ def main(log):
 def version():
     "Provides code version"
     print("Version:", revision)
-    logging.info("Version:1.1 adds Firmware update and Fbist features")
+    logging.info("Version:1.1 adds Firmware update and Fbist features\nVersion:1.2 corrects the firmware update routine to reduce time")
 
 main.add_command(version)
 
@@ -599,7 +599,7 @@ main.add_command(fbistcfg)
 #           eg python3 omi.py firmudpt -d a       #
 #########################################################
 # Firmware was reverse engineered from Cronus loading routine
-# the reg dump was processed in excel tp extract the list of writes / checking sequences.
+# the reg dump was processed in excel to extract the list of writes / checking sequences.
 # last reads were suppressed as they generate an I2C erros.
 @click.command()
 @click.option('-b', '--busnum', '_busnum', type=int, default=3, nargs=1, help='I2C bus number (default=3)')
