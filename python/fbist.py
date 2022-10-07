@@ -73,9 +73,18 @@ class Fbist:
 				fire.i2cwrite(access_type_addr, 0x0000000000000000)
 
 		# The more spacing the less traffic -> 0 is giving the maximumm throughput
-		print(">> Spacing of ", flit_spacing_int, "cycles between Flits")
-		print(">>                                                       ")
+		print(">> Spacing of", flit_spacing_int, "cycles between Flits")
 		fire.i2cwrite(0x0102000000000020, flit_spacing)
+
+		# Select the data pattern to send 
+		# 0x0 : Data Equals Address
+		# 0x1 : All 0 -  0x2 : All 1 - 0x3 : Repeating 0xA - 0x4 : Repeating 0xC
+		# 0x5 : Repeating 0x6 - 0x6 : Repeating 0xF0 
+		# Repeating 0xA => 0000000030000000
+		data_pattern = 0
+		print(">> Data pattern is 0x0 : Data Equals Address")
+		fire.i2cwrite(0x0102000000000094, (data_pattern << 28))
+		print(">>                                                       ")
 
 		self.reg_ops(self.steps_fbist_writes, _busnum, _ddimm)
 		print(" -- 6 secs run - please wait --")
@@ -86,6 +95,9 @@ class Fbist:
 
 		#==============
 		#READ PROCEDURE
+		#read_procedure = input(">> Type 'q' to quit or any key to continue with Read fbist procedure.")
+		#if (read_procedure == 'q'): return
+
 		print(">>                                                       ")
 		if (access_type_int == 4):
 			print(">> FBIST_POOL_0_ENGINE_x - 0x04=128B RD + 0x01=@Incremental address")
@@ -103,9 +115,13 @@ class Fbist:
 				fire.i2cwrite(access_type_addr, 0x0000000000000000)
 
 		# The more spacing the less traffic -> 0 is giving the maximumm throughput
-		print(">> Spacing of ", flit_spacing_int, "cycles between Flits")
-		print(">>                                                       ")
+		print(">> Spacing of", flit_spacing_int, "cycles between Flits")
 		fire.i2cwrite(0x0102000000000020, flit_spacing)
+
+		# Select the data pattern to send 
+		print(">> Data pattern is 0x0 : Data Equals Address")
+		fire.i2cwrite(0x0102000000000094, (data_pattern << 28))
+		print(">>                                                       ")
 
 		self.reg_ops(self.steps_fbist_reads, _busnum, _ddimm)
 		print(" -- 6 secs run - please wait --")
@@ -131,7 +147,6 @@ class Fbist:
 		'W' ,0x0102000000000060,0x0000000000000006,"FBIST POOL 0 ENGINE 6 ADDRESS START HIGH",
 		'W' ,0x0102000000000064,0x0000000000000000,"FBIST POOL 0 ENGINE 7 ADDRESS START LOW",
 		'W' ,0x0102000000000068,0x0000000000000007,"FBIST POOL 0 ENGINE 7 ADDRESS START HIGH",
-		'W' ,0x0102000000000094,0x0000000000000000,"FBIST DATA Pattern => 0x0: Data equals address",
 		'W' ,0x0102000000000024,0x0000000000000000,"Arbitration algorithm for Pool 0 commands => 0x0 = Round robin",
 		'R' ,0x0102000000000028,0x0000000000000000,"- Read clear Pool 0 Status and reet before start",
 		'W' ,0x0102000000000090,0x0000000000000000,"FBIST ERROR - 0x00090 =>  to reset before start",
@@ -156,7 +171,6 @@ class Fbist:
 		'W' ,0x0102000000000060,0x0000000000000006,"FBIST POOL 0 ENGINE 6 ADDRESS START HIGH",
 		'W' ,0x0102000000000064,0x0000000000000000,"FBIST POOL 0 ENGINE 7 ADDRESS START LOW",
 		'W' ,0x0102000000000068,0x0000000000000007,"FBIST POOL 0 ENGINE 7 ADDRESS START HIGH",
-		'W' ,0x0102000000000094,0x0000000000000000,"FBIST DATA Pattern => 0x0: Data equals address",
 		'W' ,0x0102000000000024,0x0000000000000000,"Arbitration algorithm for Pool 0 commands => 0x0 = Round robin",
 		'R' ,0x0102000000000028,0x0000000000000000,"- Read clear Pool 0 Status and reet before start",
 		'W' ,0x0102000000000090,0x0000000000000000,"FBIST ERROR - 0x00090 =>  to reset before start",
@@ -187,7 +201,7 @@ class Fbist:
 
 		print("-------------------------")
 		errors_found  = fire.i2cread(0x0102000000000090)
-		if (errors_found):
+		if (errors_found != 0):
 			print("Errors     :  YES - see below type of error")
 			# Describing the error status
 			fbist_error_array_data = fire.i2cread(0x01020000000000C0)
@@ -317,29 +331,29 @@ class Fbist:
 
 		print("-------------------------")
 		errors_found  = fire.i2cread(0x0102000000000090)
-		if (errors_found):
+		if (errors_found != 0):
 			#print ("FBIST ERROR ARRAY DATA - good responses? => RD @0x000C0 => expected : 0x0100_0000")
 			#print (" 0x01xx_xxxx = good write - 0x02xx_xxxx = bad write")
 			#print (" 0x03xx_xxxx = good read  - 0x04xx_xxxx = bad read response")
 			#print (" READ 17x more times FBIST ERROR ARRAY DATA")
 
 			print("Errors     :  YES - see below the 16 x 4 Bytes of the received data")
-			print("0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
-			      "0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
-			      "0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
-			      "0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)))
-			print("0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
-			      "0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
-			      "0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
-			      "0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)))
-			print("0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
-			      "0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
-			      "0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
-			      "0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)))
-			print("0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
-			      "0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
-			      "0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
-			      "0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)))
+			print(" 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)))
+			print(" 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)))
+			print(" 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)))
+			print(" 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0)))
 
 			# Describing the error status
 			fbist_error_array_data = fire.i2cread(0x01020000000000C0)
@@ -488,8 +502,10 @@ class Fbist:
 					#print("READ  REG: " + "0x{:0>16x}".format(reg) + " EXP : " + "0x{:0>16x}".format(reg_list[i+2]) + " READ: "  + "0x{:0>16x}".format(fire.i2cread(reg)))
 					fire.i2cread(reg)
 					if ("0x{:0>16x}".format(reg_list[i+2]) != "0x{:0>16x}".format(fire.i2cread(reg))):
-						fire.i2cread(reg)
 						print("!!! WARNING: READ DATA Not expected !!!!")
+						print("READ  REG: " + "0x{:0>16x}".format(reg) + " EXP : " + \
+						      "0x{:0>16x}".format(reg_list[i+2]) + " READ: "  + \
+						      "0x{:0>16x}".format(fire.i2cread(reg)))
 			else:
 				#print("WRITE REG: " + "0x{:0>16x}".format(reg) + " DATA: " + "0x{:0>16x}".format(reg_list[i+2]));fire.i2cwrite(reg, reg_list[i+2])
 				fire.i2cwrite(reg, reg_list[i+2])
