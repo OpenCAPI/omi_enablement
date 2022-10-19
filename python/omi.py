@@ -49,7 +49,10 @@ def main(log):
 def version():
     "Provides code version"
     print("Version:", revision)
-    logging.info("Version:1.1 adds Firmware update and Fbist features\nVersion:1.2 corrects the firmware update routine to reduce time")
+    logging.info\
+("\
+\nVersion 1.1: adds Firmware update and Fbist features\
+\nVersion 1.2: corrects the firmware update routine to reduce time")
 
 main.add_command(version)
 
@@ -644,10 +647,10 @@ def firmupd(_busnum, _ddimm, _freq):
         for line in f:
             l=l+1
             #if (l % 500) == 0: print("\r",l, end='')
-            line = line.split()
-            RW = line[0]
-            data = line[2]
-            data_int=int(data, 0)
+            line = line.split()      # will provide the elements of a line
+            RW = line[0]             # catches the 1st element as R or W
+            data = line[2]           # catches data after comma
+            data_int=int(data, 0)    # converts hexa str into an int with autobase(0) 
             #print("{:#018x}".format(data_int))
             #logging.info("data_int {:#018x}".format(data_int))
             if 'W' in RW:
