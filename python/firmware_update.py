@@ -51,7 +51,11 @@ cmd_buff     = []  # reserving 16 32bits data for crc calculation
 for i in range(16):
     cmd_buff.append("")
 
-firmware_file = "CL444714.bin"
+# get the latest firmware at : https://github.com/open-power/ocmb-explorer-fw/releases"
+# after unzip, rename signed_app_fw.mem into <release>.bin
+# Rename the follwing variable with the relaese name eg : 
+#firmware_file = "CL444714.bin"
+firmware_file = "<release>.bin"
 #Uncomment the following lines if you don't want to log (see next print_to_log() function)
 log_file = "./firmware_update.log"
 #comparison_log_file="./excel_compa.log"
@@ -321,6 +325,12 @@ now = datetime.now()
 # dd/mm/YY H:M:S
 dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
 print("date and time =", dt_string)	
+
+if firmware_file == "<release>.bin":
+    print("Check https://github.com/open-power/ocmb-explorer-fw/releases")
+    print("to get latest DDIMM EXPLORER firmware")
+    print("and update variable firmware_file = \"<release>.bin\" accordingly")
+    exit(1)
 
 try:
     log_file

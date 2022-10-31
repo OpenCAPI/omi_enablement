@@ -302,7 +302,7 @@ class Explorer:
             res = self.i2c_simple_read(0x2) 
             self.i2c_simple_write(reg['addr'] + 0x040400000000)
             res = self.i2c_simple_read(0x2)
-            print("{}: {}".format(reg['label'], hex(res)))
+            print("{}: {}".format(reg['label'], hex(res)), "-",res)
             res = self.i2c_simple_read(0x2)
         
         self.i2c_double_write(0x080108E7, 0x8000000000000000)

@@ -71,8 +71,8 @@ class Fire:
 		The hardware automatically puts the result in a FIFO tied directly to I2C bus.
 	"""
 	def i2cread(self, reg_addr):
-		if ((reg_addr & 0xFFFFFFFFFFFFFC0) == 0x100000000000000) & (reg_addr % 4 != 0):
-			print("FML address should by multiple of 4"); exit()
+		#if ((reg_addr & 0xFFFFFFFFFFFFFC0) == 0x100000000000000) & (reg_addr % 4 != 0):
+			#print("FML address should by multiple of 4"); exit()
 
 		msg = smbus.i2c_msg.write(FIRE_I2C_ADDR, list(reg_addr.to_bytes(8, 'big')))
 		self.i2c_bus.i2c_rdwr(msg)
@@ -85,10 +85,16 @@ class Fire:
 		# format result
 		
 		odata = int(''.join(format(val, '02x') for val in block), 16)
-		if odata == 0xdec0de1c:
-			print("ERROR !! Address is out of range")
+		if odata == 0xdec0de00:
+			print("WARNING !! Address has not been set yet by hardware")
+		elif odata == 0xdec0de0b:
+			print("ERROR !! Address is in AXI range but out of the hardware range")
+		elif odata == 0xdec0de1c:
+			print("ERROR !! Address is out of AXI range")
+		elif odata == 0xdec0deff:
+			print("WARNING !! Address is not modulo 4 aligned")
 		logging.info("Reading {} from {}".format(hex(odata), hex(reg_addr)))
-		
+
 		return odata
 	
 	"""

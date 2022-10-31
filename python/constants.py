@@ -40,28 +40,28 @@ EXP_I2C_ADDR                  = 0x20
 EXP_ADDR_OFFSET               = 0xA0000000
 
 # Firmware registers
-EXP_REG_NUM_IMAGES            = {'addr': 0x102FF00 + EXP_ADDR_OFFSET, 'label': 'FW number of images'}
-EXP_REG_PARTITION_ID          = {'addr': 0x102FF04 + EXP_ADDR_OFFSET, 'label': 'Partition ID'}
+EXP_REG_NUM_IMAGES            = {'addr': 0x102FF00 + EXP_ADDR_OFFSET, 'label': 'FW number of images          '}
+EXP_REG_PARTITION_ID          = {'addr': 0x102FF04 + EXP_ADDR_OFFSET, 'label': 'Partition ID                 '}
 
-EXP_REG_MAJOR_A                = {'addr': 0x102FF08 + EXP_ADDR_OFFSET, 'label': 'Major (Boot Partion A)'}
-EXP_REG_MINOR_A                = {'addr': 0x102FF0C + EXP_ADDR_OFFSET, 'label': 'Minor (Boot Partion A)'}
-EXP_REG_BUILD_PATCH_A          = {'addr': 0x102FF10 + EXP_ADDR_OFFSET, 'label': 'Build patch (Boot Partion A)'}
+EXP_REG_MAJOR_A                = {'addr': 0x102FF08 + EXP_ADDR_OFFSET, 'label': 'Major (Boot Partion A)       '}
+EXP_REG_MINOR_A                = {'addr': 0x102FF0C + EXP_ADDR_OFFSET, 'label': 'Minor (Boot Partion A)       '}
+EXP_REG_BUILD_PATCH_A          = {'addr': 0x102FF10 + EXP_ADDR_OFFSET, 'label': 'Build patch (Boot Partion A) '}
 EXP_REG_BUILD_NUMBER_A         = {'addr': 0x102FF14 + EXP_ADDR_OFFSET, 'label': 'Build number (Boot Partion A)'}
-EXP_REG_BUILD_DATE_A           = {'addr': 0x102FF18 + EXP_ADDR_OFFSET, 'label': 'Build date (Boot Partion A)'}
+EXP_REG_BUILD_DATE_A           = {'addr': 0x102FF18 + EXP_ADDR_OFFSET, 'label': 'Build date (Boot Partion A)  '}
 
-EXP_REG_MAJOR_B                = {'addr': 0x102FF1C + EXP_ADDR_OFFSET, 'label': 'Major (Boot Partion B)'}
-EXP_REG_MINOR_B                = {'addr': 0x102FF20 + EXP_ADDR_OFFSET, 'label': 'Minor (Boot Partion B)'}
-EXP_REG_BUILD_PATCH_B          = {'addr': 0x102FF24 + EXP_ADDR_OFFSET, 'label': 'Build patch (Boot Partion B)'}
+EXP_REG_MAJOR_B                = {'addr': 0x102FF1C + EXP_ADDR_OFFSET, 'label': 'Major (Boot Partion B)       '}
+EXP_REG_MINOR_B                = {'addr': 0x102FF20 + EXP_ADDR_OFFSET, 'label': 'Minor (Boot Partion B)       '}
+EXP_REG_BUILD_PATCH_B          = {'addr': 0x102FF24 + EXP_ADDR_OFFSET, 'label': 'Build patch (Boot Partion B) '}
 EXP_REG_BUILD_NUMBER_B         = {'addr': 0x102FF28 + EXP_ADDR_OFFSET, 'label': 'Build number (Boot Partion B)'}
-EXP_REG_BUILD_DATE_B           = {'addr': 0x102FF2C + EXP_ADDR_OFFSET, 'label': 'Build date (Boot Partion B)'}
+EXP_REG_BUILD_DATE_B           = {'addr': 0x102FF2C + EXP_ADDR_OFFSET, 'label': 'Build date (Boot Partion B)  '}
 
-EXP_REG_RAM_SIZE_IN_BYTES     = {'addr': 0x102FF30 + EXP_ADDR_OFFSET, 'label': 'RAM size (in bytes)'}
-EXP_REG_CHIP_VERSION          = {'addr': 0x102FF34 + EXP_ADDR_OFFSET, 'label': 'Chip version'}
-EXP_REG_SPI_FLASH_ID          = {'addr': 0x102FF38 + EXP_ADDR_OFFSET, 'label': 'SPI flash ID'}
-EXP_REG_SPI_FLASH_SECTOR_SIZE = {'addr': 0x102FF3C + EXP_ADDR_OFFSET, 'label': 'SPI flash sector size'}
-EXP_REG_SPI_FLASH_SIZE        = {'addr': 0x102FF40 + EXP_ADDR_OFFSET, 'label': 'SPI flash size'}
-EXP_REG_ERROR_BUFFER_SIZE     = {'addr': 0x102FF44 + EXP_ADDR_OFFSET, 'label': 'Error buffer size'}
-EXP_REG_IMAGE_INDEX           = {'addr': 0x102FF48 + EXP_ADDR_OFFSET, 'label': 'Image index'}
+EXP_REG_RAM_SIZE_IN_BYTES     = {'addr': 0x102FF30 + EXP_ADDR_OFFSET, 'label': 'RAM size (in bytes)          '}
+EXP_REG_CHIP_VERSION          = {'addr': 0x102FF34 + EXP_ADDR_OFFSET, 'label': 'Chip version                 '}
+EXP_REG_SPI_FLASH_ID          = {'addr': 0x102FF38 + EXP_ADDR_OFFSET, 'label': 'SPI flash ID                 '}
+EXP_REG_SPI_FLASH_SECTOR_SIZE = {'addr': 0x102FF3C + EXP_ADDR_OFFSET, 'label': 'SPI flash sector size        '}
+EXP_REG_SPI_FLASH_SIZE        = {'addr': 0x102FF40 + EXP_ADDR_OFFSET, 'label': 'SPI flash size               '}
+EXP_REG_ERROR_BUFFER_SIZE     = {'addr': 0x102FF44 + EXP_ADDR_OFFSET, 'label': 'Error buffer size            '}
+EXP_REG_IMAGE_INDEX           = {'addr': 0x102FF48 + EXP_ADDR_OFFSET, 'label': 'Image index                  '}
 
 EXP_FW_REGISTERS = [EXP_REG_NUM_IMAGES, EXP_REG_PARTITION_ID, EXP_REG_MAJOR_A, EXP_REG_MINOR_A, EXP_REG_BUILD_PATCH_A, EXP_REG_BUILD_NUMBER_A, EXP_REG_BUILD_DATE_A, 
                     EXP_REG_MAJOR_B, EXP_REG_MINOR_B, EXP_REG_BUILD_PATCH_B, EXP_REG_BUILD_NUMBER_B, EXP_REG_BUILD_DATE_B, EXP_REG_RAM_SIZE_IN_BYTES,

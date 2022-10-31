@@ -41,7 +41,6 @@ crc32_lookup_table = (
 )
 
 def crc32_gen_file(txt_crc_file):
-    #txt_crc_file = "CL444714_text.txt"
     f = open(txt_crc_file, "r")
     c = 0
     crc32 = 0xFFFFFFFF
@@ -104,4 +103,3 @@ def crc32_array(data_array, len):
     #print(format(crc32, '08X'))
     return crc32
 
-#crc32_gen_file("CL444714_text.txt")
