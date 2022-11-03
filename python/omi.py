@@ -598,8 +598,6 @@ def fbistcfg(_busnum, _ddimm, _freq):
 main.add_command(fbistcfg)
                                     
 
-main.add_command(firmupd)
-
 if __name__ == "__main__":
     main()
 
