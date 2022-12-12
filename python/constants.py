@@ -26,6 +26,7 @@
 #########################################################
 
 ICE_I2C_ADDR                  = 0x20
+ICE_ID_NUM_REG                = 0x0801240e      # contains the Chip ID and card information
 
 
 
@@ -142,7 +143,9 @@ EXP_ID_NUM_REG   = 0x02090000
 FIRE_I2C_ADDR          = 0x38
 
 FIRE_400_MHZ_VERSION_ID = [0xb20b168, 0x90AD53D, 0xA032D32, 0x93A2CD0]
-FIRE_333_MHZ_VERSION_ID = [0x5cd07be, 0xE525BAD, 0xB20B168]
+FIRE_333_MHZ_VERSION_ID = [0x5cd07be, 0xE525BAD, 0xB20B168, 0x2e29c7d2]
+FIRE_VERSION_DESC = [0x2e29c7d2, "astra_fire_e29c7d2_333MHz_22ps_TRM_trainAB_ok",0x3739a2, "astra_fire_open_regctrl_3739a02_333MHz_2ps_OK" ]
+
 
 FIRE_FML_REG_BASE_ADDR = 0x0100000000000000
 FIRE_C3S_REG_BASE_ADDR = 0x0101000000000000
@@ -208,12 +211,14 @@ DDIMM_HOST_CONF_UP_BIT = (1 << 3)
 #                                                       #
 #########################################################
 
-MUX1_I2C_ADDR = 0x70
-MUX2_I2C_ADDR = 0x73
-MUX3_I2C_ADDR = 0x71
+MUX1_I2C_ADDR    = 0x70
+MUX2_I2C_ADDR    = 0x73
+MUX3_I2C_ADDR    = 0x71
 
-PMIC1_I2C_ADDR = 0x4f
-PMIC2_I2C_ADDR = 0x67
+PMIC1_I2C_ADDR   = 0x4f
+PMIC2_I2C_ADDR   = 0x67
+
+GEM_CLK_GEN_ADDR = 0x7c
 
 DDIMMA = 0
 DDIMMB = 1
@@ -225,11 +230,12 @@ I2C_ADDR_RANGE = 127
 EXPLORER   = {"name": "EXPLORER/ICE", "addr": EXP_I2C_ADDR}
 FIRE       = {"name": "FIRE", "addr": FIRE_I2C_ADDR}
 MUX1       = {"name": "Apollo First Level Switch/Mux/Selector", "addr": MUX1_I2C_ADDR}
-MUX2       = {"name": "Dummy Switch/Mux/Selector for Apollo16 Config", "addr": MUX2_I2C_ADDR}
+MUX2       = {"name": "Dummy Switch/Mux/Selector to mimic Apollo16 Config", "addr": MUX2_I2C_ADDR}
 MUX3       = {"name": "DDIMM Switch/Mux/Selector", "addr": MUX3_I2C_ADDR}
 EEPROM     = {"name": "EEPROM", "addr": EEPROM_I2C_ADDR}
 POWER_CTRL = {"name": "UDC90120A Power Controller", "addr": POWER_CTRL_I2C_ADDR}
 PMIC1      = {"name": "PMIC1", "addr": PMIC1_I2C_ADDR}
 PMIC2      = {"name": "PMIC2", "addr": PMIC2_I2C_ADDR}
+GEM_CLK_GEN= {"name": "GEMINI CLK GEN", "addr": GEM_CLK_GEN_ADDR}
 
-known_devices = [EXPLORER, FIRE, MUX1, MUX2, MUX3, EEPROM, POWER_CTRL, PMIC1, PMIC2]
+known_devices = [EXPLORER, FIRE, MUX1, MUX2, MUX3, EEPROM, POWER_CTRL, PMIC1, PMIC2, GEM_CLK_GEN]

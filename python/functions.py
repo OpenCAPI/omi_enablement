@@ -42,17 +42,28 @@ def get_alive_addresses(bus):
 
 
 
-def scan_bus(busNum=3):
+def scan_bus(busNum=3, verbose=0):
     bus = init_bus(busNum)
     logging.info('I2C bus is initialized.')
     addr_found = [addr for addr in get_alive_addresses(bus)]
-
+    
+    
+    # Concerning devices, EXP and ice do not have the same address for ID,
+    # so we use a criteria based on power managment chips to define which card is plugged
+    # return value will contain the type of card
+    ret = "None"
     if len(addr_found) > 0:
         for _addr in addr_found:
             if _addr in [dev['addr'] for dev in known_devices]:
                 device = [dev['name'] for dev in known_devices if dev['addr'] == _addr][0]
-                print("{:#02x}: {}".format(_addr, device))
+                if verbose: print("  --{:#02x}: {}".format(_addr, device))
+                if   device == "PMIC2":      ret = "DDIMM"  # basic criteria to recognize a card type
+                elif device.find("UDC90120A")!=-1: ret = "GEMINI"
+
             else:
-                print("{:#02x}: Unknown".format(_addr))
+                if verbose:print("  --{:#02x}: Unknown device".format(_addr))
+
     
     else : print("No devices found on I2C-{} bus".format(busNum))
+
+    return ret

@@ -147,7 +147,7 @@ class Eeprom:
         if data == 0x9: vendor = "IBM"
         elif data == 0x4: vendor = "SMART"
         else: vendor = "UNKNOW Memory code"
-        logging.info("Old Vendor  :",vendor)
+        logging.info("Old Vendor  :" + vendor)
         
         logging.info("bytes 512(0x200), 513(0x201) contain Manuf ID : MICRON = 0x802C, SAMSUNG = 0x80CE, SMART = 0x0194)")
         data = (self.i2cread(512) << 8) + (self.i2cread(513))
@@ -177,21 +177,31 @@ def close_path(busnum):
     mux.i2cwrite(0x00)
 
 """Information regarding the I2C commands for the DDIMM PMICs is available in the JEDEC Standard Document JESD301-1A available here: https://www.jedec.org/standards-documents/docs/jesd301-1a"""
+""" Ice has a single Power Managment Chip (UPM) and starts by itself"""
 def set_pmics(busnum):
-    """ Activate PMICs to access the Explorer chip """
-    pmic1 = Pmic(PMIC1_I2C_ADDR, busnum)
-    pmic2 = Pmic(PMIC2_I2C_ADDR, busnum)
-    pmic1.i2cwrite(0x80)
-    pmic2.i2cwrite(0x80)
+    card = scan_bus()
+    if card in ["DDIMM"]:
+        try:
+            pmic1 = Pmic(PMIC1_I2C_ADDR, busnum)
+            pmic2 = Pmic(PMIC2_I2C_ADDR, busnum)
+            pmic1.i2cwrite(0x80)
+            pmic2.i2cwrite(0x80)
+            print("Activated DDIMM's both PMICs to provide access to the Explorer chip")
+        except:
+            print("ERROR !! : DDIMM's PMICS not detected !")
+            exit()
+    elif card in ["GEMINI"]:
+        print("GEMINI Card detected, UPM started by itself")
+    else : print("WARNING : unknown card or no card")
 
 def clear_pmics(busnum):
-    """ Activate PMICs to hid the Explorer chip """
+    """ Desactivate PMICs to power off Explorer chip """
     pmic1 = Pmic(PMIC1_I2C_ADDR, busnum)
     pmic2 = Pmic(PMIC2_I2C_ADDR, busnum)
     pmic1.i2cwrite(0x00)
     pmic2.i2cwrite(0x00)
 
-def setup_ddimm_path(ddimm, busnum):
+def setup_ddimm_path(ddimm, busnum, verbose):
     """ Open path for given ddimm, only one at a time """
     open_path(busnum)
     mux = Mux(MUX3_I2C_ADDR, busnum)
@@ -199,22 +209,20 @@ def setup_ddimm_path(ddimm, busnum):
         mux.i2cwrite(0x00)
     elif 'a' in ddimm.lower():
         mux.i2cwrite(1 << DDIMMA)
-        set_pmics(busnum)
+        #set_pmics(busnum, verbose)
     elif 'b' in ddimm.lower():
         mux.i2cwrite(1 << DDIMMB)
-        set_pmics(busnum)
+        #set_pmics(busnum, verbose)
 
 def path_status(busnum):
     """ Get current path status (which DDIMM is accessible) """
     mux1 = Mux(MUX2_I2C_ADDR, busnum)
-    if mux1.i2cread() == 0x0: print("Path is closed.")
+    if mux1.i2cread() == 0x0: print("I2C Path is not connected to any DDIMM port.")
     if mux1.i2cread() == 0x1:
         mux2 = Mux(MUX3_I2C_ADDR, busnum)
-        if mux2.i2cread() == 0x0: print("No path is open for any DDIMM")
-        elif mux2.i2cread() == 0x1: print("Path is set on DDIMM0/A")
-        elif mux2.i2cread() == 0x2: print("Path is set on DDIMM1/B")
-
-
+        if mux2.i2cread() == 0x0: print("No I2C path is open for any DDIMM")
+        elif mux2.i2cread() == 0x1: print("I2C Path is set to PORT 0/A")
+        elif mux2.i2cread() == 0x2: print("I2C Path is set to PORT 1/B")
 
 
 if __name__ == "__main__":

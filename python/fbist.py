@@ -41,12 +41,20 @@ class Fbist:
 		print("======================================================")
 		print("")
 		logging.info(_ddimm)
+		ddimm_add_adj_A=0x00000000
+		ddimm_add_adj_B=(0x00000400 <<32)
 		if _ddimm == "a":
-			ddimm_add_adj=0x00000000
+			port_A_active = 1
+			port_B_active = 0
 		elif _ddimm == "b":
-			ddimm_add_adj=(0x00000400 <<32)
+			port_A_active = 0
+			port_B_active = 1
+		elif (_ddimm == "ab" or _ddimm == "ba"):
+			port_A_active = 1
+			port_B_active = 1
 		else:
 			print("ERROR: incorrect ddimm selection !!")
+			return
 	
 		print("#=============================")
 		print(" Commands configuration for DDIMM located in port", _ddimm)
@@ -74,16 +82,24 @@ class Fbist:
 		#--------------------------------
 		# Enabling 1 to 8 engines with the same data + Disabling the unused one
 		for x in range (0, 8):
-			access_type_addr = int(0x0102000000000000 + 4*x + ddimm_add_adj)
-			if (x < (int)(number_of_engines)):
-				fire.i2cwrite(access_type_addr, access_type)
-			else:
-				fire.i2cwrite(access_type_addr, 0x0000000000000000)
+			if (port_A_active):
+				access_type_addr = int(0x0102000000000000 + 4*x + ddimm_add_adj_A)
+				if (x < (int)(number_of_engines)):
+					fire.i2cwrite(access_type_addr, access_type)
+				else:
+					fire.i2cwrite(access_type_addr, 0x0000000000000000)
+			if (port_B_active):
+				access_type_addr = int(0x0102000000000000 + 4*x + ddimm_add_adj_B)
+				if (x < (int)(number_of_engines)):
+					fire.i2cwrite(access_type_addr, access_type)
+				else:
+					fire.i2cwrite(access_type_addr, 0x0000000000000000)
 
 		#--------------------------------
 		# The more spacing the less traffic -> 0 is giving the maximumm throughput
 		print(">> Spacing of", flit_spacing_int, "cycles between Flits")
-		fire.i2cwrite(0x0102000000000020 + ddimm_add_adj, flit_spacing)
+		if (port_A_active): fire.i2cwrite(0x0102000000000020 + ddimm_add_adj_A, flit_spacing)
+		if (port_B_active): fire.i2cwrite(0x0102000000000020 + ddimm_add_adj_B, flit_spacing)
 
 		#--------------------------------
 		# Select the data pattern to send 
@@ -93,16 +109,20 @@ class Fbist:
 		# Repeating 0xA => 0000000030000000
 		data_pattern = 0
 		print(">> Data pattern is 0x0 : Data Equals Address")
-		fire.i2cwrite(0x0102000000000094 + ddimm_add_adj, (data_pattern << 28))
+		if (port_A_active): fire.i2cwrite(0x0102000000000094 + ddimm_add_adj_A, (data_pattern << 28))
+		if (port_B_active): fire.i2cwrite(0x0102000000000094 + ddimm_add_adj_B, (data_pattern << 28))
 		print(">>                                                       ")
 
 		#--------------------------------
-		self.reg_ops(self.steps_fbist_writes, _busnum, _ddimm)
+		if (port_A_active): self.reg_ops(self.steps_fbist_writes, _busnum, "a")
+		if (port_B_active): self.reg_ops(self.steps_fbist_writes, _busnum, "b")
 		print(" -- 6 secs run - please wait --")
 		sleep(6)
-		self.reg_ops(self.steps_fbist_stop, _busnum, _ddimm)
+		if (port_A_active): self.reg_ops(self.steps_fbist_stop, _busnum, "a")
+		if (port_B_active): self.reg_ops(self.steps_fbist_stop, _busnum, "b")
 
-		self.fbist_stats_wr(_busnum, _ddimm)
+		if (port_A_active): self.fbist_stats_wr(_busnum, "a")
+		if (port_B_active): self.fbist_stats_wr(_busnum, "b")
 
 		#==============
 		#READ PROCEDURE
@@ -120,29 +140,41 @@ class Fbist:
 		#--------------------------------
 		# Enabling 1 to 8 engines with the same data + Disabling the unused one
 		for x in range (0, 8):
-			access_type_addr = int(0x0102000000000000 + 4*x + ddimm_add_adj)
-			if (x < (int)(number_of_engines)):
-				fire.i2cwrite(access_type_addr, access_type)
-			else:
-				fire.i2cwrite(access_type_addr, 0x0000000000000000)
+			if (port_A_active):
+				access_type_addr = int(0x0102000000000000 + 4*x + ddimm_add_adj_A)
+				if (x < (int)(number_of_engines)):
+					fire.i2cwrite(access_type_addr, access_type)
+				else:
+					fire.i2cwrite(access_type_addr, 0x0000000000000000)
+			if (port_B_active):
+				access_type_addr = int(0x0102000000000000 + 4*x + ddimm_add_adj_B)
+				if (x < (int)(number_of_engines)):
+					fire.i2cwrite(access_type_addr, access_type)
+				else:
+					fire.i2cwrite(access_type_addr, 0x0000000000000000)
 
 		#--------------------------------
 		# The more spacing the less traffic -> 0 is giving the maximum throughput
 		print(">> Spacing of", flit_spacing_int, "cycles between Flits")
-		fire.i2cwrite(0x0102000000000020 + ddimm_add_adj, flit_spacing)
+		if (port_A_active): fire.i2cwrite(0x0102000000000020 + ddimm_add_adj_A, flit_spacing)
+		if (port_B_active): fire.i2cwrite(0x0102000000000020 + ddimm_add_adj_B, flit_spacing)
 
 		#--------------------------------
 		# Select the data pattern to send 
 		print(">> Data pattern is 0x0 : Data Equals Address")
-		fire.i2cwrite(0x0102000000000094 + ddimm_add_adj, (data_pattern << 28))
+		if (port_A_active): fire.i2cwrite(0x0102000000000094 + ddimm_add_adj_A, (data_pattern << 28))
+		if (port_B_active): fire.i2cwrite(0x0102000000000094 + ddimm_add_adj_B, (data_pattern << 28))
 		print(">>                                                       ")
 
-		self.reg_ops(self.steps_fbist_reads, _busnum, _ddimm)
+		if (port_A_active): self.reg_ops(self.steps_fbist_reads, _busnum, "a")
+		if (port_B_active): self.reg_ops(self.steps_fbist_reads, _busnum, "b")
 		print(" -- 6 secs run - please wait --")
 		sleep(6)
-		self.reg_ops(self.steps_fbist_stop, _busnum, _ddimm)
+		if (port_A_active): self.reg_ops(self.steps_fbist_stop, _busnum, "a")
+		if (port_B_active): self.reg_ops(self.steps_fbist_stop, _busnum, "b")
 
-		self.fbist_stats_rd(_busnum, _ddimm)		
+		if (port_A_active): self.fbist_stats_rd(_busnum, "a")
+		if (port_B_active): self.fbist_stats_rd(_busnum, "b")
 
 	steps_fbist_writes = ("steps_fbist_writes",
 		'W' ,0x010200000000002C,0x0000000000000000,"FBIST POOL 0 ENGINE 0 ADDRESS START 32b LOW",
@@ -214,42 +246,17 @@ class Fbist:
 		fire = Fire(_busnum)
 
 		logging.info(_ddimm)
+		print("-------------------------")
 		if _ddimm == "a":
 			ddimm_add_adj=0x00000000
+			print("-------  PORT A  --------")
 		elif _ddimm == "b":
 			ddimm_add_adj=0x00000400 <<32
+			print("-------  PORT B  --------")
 		else:
 			print("ERROR: incorrect ddimm selection !!")
 	
 		print("-------------------------")
-		errors_found  = fire.i2cread(0x0102000000000090)
-		if (errors_found != 0):
-			print("Errors     :  YES - see below type of error")
-			# Describing the error status
-			fbist_error_array_data = fire.i2cread(0x01020000000000C0 + ddimm_add_adj)
-			print("Error status : 0x{:0>08x}".format(fbist_error_array_data), "described as follow:")
-			error_snapshot        = (fbist_error_array_data & 0xFF000000) >> 24
-			error_snapshot_engine = (fbist_error_array_data & 0x00F00000) >> 20
-			error_snapshot_act_tag= (fbist_error_array_data & 0x000FF000) >> 12
-			error_snapshot_exp_tag= (fbist_error_array_data & 0x00000FF0) >>  4
-			error_snapshot_dp     = (fbist_error_array_data & 0x0000000C) >>  2
-			error_snapshot_ow     = (fbist_error_array_data & 0x00000002) >>  1
-			error_snapshot_dmisc  = (fbist_error_array_data & 0x00000001)
-
-			if   (error_snapshot_dmisc == 1): print (">> Data compare error ")
-			if   (error_snapshot == 1): print (">> Good Write response on engine number ", error_snapshot_engine)
-			elif (error_snapshot == 2): print (">> Bad Write response on engine number ", error_snapshot_engine)
-			elif (error_snapshot == 3): print (">> Good Read response on engine number ", error_snapshot_engine)
-			elif (error_snapshot == 4): print (">> Bad Read response on engine number ", error_snapshot_engine)
-
-			#print (">> Actual capptag: ",hex(error_snapshot_act_tag), " - Expected capptag: ",hex(error_snapshot_exp_tag))
-			print (">> Actual capptag: 0x{:0>02x}".format(error_snapshot_act_tag), \
-			       " - Expected capptag: 0x{:0>02x}".format(error_snapshot_exp_tag))
-			print (">> OpenCAPI dpart : ",error_snapshot_dp, " - OpenCAPI OW : ",error_snapshot_ow)
-			print("-------------------------")
-		else:
-			print("Errors     :  no errors found ")
-
 		run_high = fire.i2cread(0x01020000000000B0 + ddimm_add_adj)
 		#run_high =0x0000000000000000
 		#print("RUN TIME H :",run_high)
@@ -336,55 +343,21 @@ class Fbist:
 				print("Access is  : WRITE nb_32Bwr/nb_wr Bytes!!")
 
 		print("freq       :",fire.freq, "MHz")
-		if (nb_wr != 0 ):
+		if (nb_wr != 0  and int(latency) != 0):
 			avg_wr_lat = latency / nb_wr *1000000000
 			print("Avg Wr lat : {:0>.2f} ns".format(avg_wr_lat))
+			Throughput = nb_32Bwr * 32 / run_time / 1000000000
+			print("Throughput : {:0>.2f} GBps".format(Throughput))
 		else:
-			print("Avg Wr lat : NA")
+			print("Avg Wr lat : NA or not representative")
+			print("Throughput : NA or not representative")
 
 
-		Throughput = nb_32Bwr * 32 / run_time / 1000000000
-		print("Throughput : {:0>.2f} GBps".format(Throughput))
 
 		print("-------------------------")
-
-	def fbist_stats_rd(self, _busnum, _ddimm):
-		fire = Fire(_busnum)
-
-		logging.info(_ddimm)
-		if _ddimm == "a":
-			ddimm_add_adj=0x00000000
-		elif _ddimm == "b":
-			ddimm_add_adj=0x00000400 <<32
-		else:
-			print("ERROR: incorrect ddimm selection !!")
-	
-		print("-------------------------")
-		errors_found  = fire.i2cread(0x0102000000000090 + ddimm_add_adj)
+		errors_found  = fire.i2cread(0x0102000000000090)
 		if (errors_found != 0):
-			#print ("FBIST ERROR ARRAY DATA - good responses? => RD @0x000C0 => expected : 0x0100_0000")
-			#print (" 0x01xx_xxxx = good write - 0x02xx_xxxx = bad write")
-			#print (" 0x03xx_xxxx = good read  - 0x04xx_xxxx = bad read response")
-			#print (" READ 17x more times FBIST ERROR ARRAY DATA")
-
-			print("Errors     :  YES - see below the 16 x 4 Bytes of the received data")
-			print(" 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
-			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
-			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
-			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)))
-			print(" 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
-			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
-			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
-			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)))
-			print(" 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
-			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
-			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
-			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)))
-			print(" 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
-			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
-			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
-			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)))
-
+			print("Errors     :  YES - see below type of error")
 			# Describing the error status
 			fbist_error_array_data = fire.i2cread(0x01020000000000C0 + ddimm_add_adj)
 			print("Error status : 0x{:0>08x}".format(fbist_error_array_data), "described as follow:")
@@ -402,13 +375,30 @@ class Fbist:
 			elif (error_snapshot == 3): print (">> Good Read response on engine number ", error_snapshot_engine)
 			elif (error_snapshot == 4): print (">> Bad Read response on engine number ", error_snapshot_engine)
 
+			#print (">> Actual capptag: ",hex(error_snapshot_act_tag), " - Expected capptag: ",hex(error_snapshot_exp_tag))
 			print (">> Actual capptag: 0x{:0>02x}".format(error_snapshot_act_tag), \
 			       " - Expected capptag: 0x{:0>02x}".format(error_snapshot_exp_tag))
 			print (">> OpenCAPI dpart : ",error_snapshot_dp, " - OpenCAPI OW : ",error_snapshot_ow)
-			print("-------------------------")
+			print (">> Errors can be due to bad timing closure of the FPGA design or traffic too quick for logic")
 		else:
-			print("Errors     :  no errors found ")
+			print("Status     :  no errors found ")
+		print("-------------------------")
 
+	def fbist_stats_rd(self, _busnum, _ddimm):
+		fire = Fire(_busnum)
+
+		logging.info(_ddimm)
+		print("-------------------------")
+		if _ddimm == "a":
+			ddimm_add_adj=0x00000000
+			print("-------  PORT A  --------")
+		elif _ddimm == "b":
+			ddimm_add_adj=0x00000400 <<32
+			print("-------  PORT B  --------")
+		else:
+			print("ERROR: incorrect ddimm selection !!")
+	
+		print("-------------------------")
 		run_high = fire.i2cread(0x01020000000000B0 + ddimm_add_adj)
 		#run_high =0x0000000000000000
 		#print("RUN TIME H :",run_high)
@@ -495,16 +485,66 @@ class Fbist:
 				print("Access is  : READ nb_32Brd/nb_rd Bytes!!")
 
 		print("freq       :",fire.freq, "MHz")
-		if (nb_rd != 0 ):
+		if (nb_rd != 0  and int(latency) != 0):
 			avg_rd_lat = latency / nb_32Brd *1000000000
 			print("Avg Rd lat : {:0>.2f} ns".format(avg_rd_lat))
+			Throughput = nb_32Brd * 32 / run_time / 1000000000
+			print("Throughput : {:0>.2f} GBps".format(Throughput))
 		else:
-			print("Avg Rd lat : NA")
+			print("Avg Rd lat : NA or not representative")
+			print("Throughput : NA or not representative")
 
 
-		Throughput = nb_32Brd * 32 / run_time / 1000000000
-		print("Throughput : {:0>.2f} GBps".format(Throughput))
 
+		print("-------------------------")
+		errors_found  = fire.i2cread(0x0102000000000090 + ddimm_add_adj)
+		if (errors_found != 0):
+			#print ("FBIST ERROR ARRAY DATA - good responses? => RD @0x000C0 => expected : 0x0100_0000")
+			#print (" 0x01xx_xxxx = good write - 0x02xx_xxxx = bad write")
+			#print (" 0x03xx_xxxx = good read  - 0x04xx_xxxx = bad read response")
+			#print (" READ 17x more times FBIST ERROR ARRAY DATA")
+
+			print("Errors     :  YES - see below the 16 x 4 Bytes of the received data")
+			print(" 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)))
+			print(" 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)))
+			print(" 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)))
+			print(" 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)), \
+			      " 0x{:0>08x}".format(fire.i2cread(0x01020000000000C0 + ddimm_add_adj)))
+
+			# Describing the error status
+			fbist_error_array_data = fire.i2cread(0x01020000000000C0 + ddimm_add_adj)
+			print("Error status : 0x{:0>08x}".format(fbist_error_array_data), "described as follow:")
+			error_snapshot        = (fbist_error_array_data & 0xFF000000) >> 24
+			error_snapshot_engine = (fbist_error_array_data & 0x00F00000) >> 20
+			error_snapshot_act_tag= (fbist_error_array_data & 0x000FF000) >> 12
+			error_snapshot_exp_tag= (fbist_error_array_data & 0x00000FF0) >>  4
+			error_snapshot_dp     = (fbist_error_array_data & 0x0000000C) >>  2
+			error_snapshot_ow     = (fbist_error_array_data & 0x00000002) >>  1
+			error_snapshot_dmisc  = (fbist_error_array_data & 0x00000001)
+
+			if   (error_snapshot_dmisc == 1): print (">> Data compare error ")
+			if   (error_snapshot == 1): print (">> Good Write response on engine number ", error_snapshot_engine)
+			elif (error_snapshot == 2): print (">> Bad Write response on engine number ", error_snapshot_engine)
+			elif (error_snapshot == 3): print (">> Good Read response on engine number ", error_snapshot_engine)
+			elif (error_snapshot == 4): print (">> Bad Read response on engine number ", error_snapshot_engine)
+
+			print (">> Actual capptag: 0x{:0>02x}".format(error_snapshot_act_tag), \
+			       " - Expected capptag: 0x{:0>02x}".format(error_snapshot_exp_tag))
+			print (">> OpenCAPI dpart : ",error_snapshot_dp, " - OpenCAPI OW : ",error_snapshot_ow)
+			print (">> Errors can be due to bad timing closure of the FPGA design or traffic too quick for logic")
+		else:
+			print("Status     :  no errors found ")
 		print("-------------------------")
 
 	def reg_ops(self, reg_list, _busnum, _ddimm):

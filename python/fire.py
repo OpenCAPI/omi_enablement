@@ -44,7 +44,7 @@ class Fire:
 		#logging.info('{:#03x} {}'.format(self.freq_def))
 		#logging.info("freq_def =", self.freq_def)
 		if (self.freq_def == 0):
-			print("WARNING: Old version of VHDL used, doesn't contain OMI link speed")
+			print("WARNING: FIRE access issue, or old version of FIRE VHDL used, doesn't contain OMI link speed")
 			logging.info("         trying to find an old correspondence")
 			if self.id & 0x0fffffff in FIRE_400_MHZ_VERSION_ID: self.freq = 400; logging.info("Freq set to 400MHz")
 			elif self.id & 0x0fffffff in FIRE_333_MHZ_VERSION_ID: self.freq = 333; logging.info("Freq set to 333MHz")
@@ -54,7 +54,7 @@ class Fire:
 		elif (self.freq_def == 0b001): logging.info("frequency is 333MHz");self.freq = 333
 		elif (self.freq_def == 0b010): logging.info("frequency is 366MHz");self.freq = 366
 		elif (self.freq_def == 0b011): logging.info("frequency is 400MHz");self.freq = 400
-		else: print("WARNING: No proper frequency setting found")
+		else: print("WARNING: No proper FIRE frequency setting found")
 		
 	""" 
 		Detect if Fire's i2c address is visible on the bus 
@@ -85,15 +85,16 @@ class Fire:
 		# format result
 		
 		odata = int(''.join(format(val, '02x') for val in block), 16)
-		if odata == 0xdec0de00:
-			print("WARNING !! Address has not been set yet by hardware")
+		logging.info("FIRE: Reading {} from {}".format(hex(odata), hex(reg_addr)))
+		if odata   == 0xdec0de00:
+			print("WARNING !! Fire address has not been set yet by hardware")
 		elif odata == 0xdec0de0b:
-			print("ERROR !! Address is in AXI range but out of the hardware range")
+			print("ERROR !! Fire address is in AXI range but out of the hardware range")
 		elif odata == 0xdec0de1c:
-			print("ERROR !! Address is out of AXI range")
+			print("ERROR !! Fire address is out of AXI range")
 		elif odata == 0xdec0deff:
-			print("WARNING !! Address is not modulo 4 aligned")
-		logging.info("Reading {} from {}".format(hex(odata), hex(reg_addr)))
+			print("WARNING !! Fire address is not modulo 4 aligned")
+		
 
 		return odata
 	
@@ -170,23 +171,43 @@ class Fire:
 			self.i2cwrite(FIRE_DDIMMB_HOST_CONF_BASE_ADDR + 0x10, 0x0000000004010045)
 			self.i2cwrite(FIRE_DDIMMB_HOST_CONF_BASE_ADDR + 0x10, 0x0000000004080045)
 		logging.info("---------- End of SEQ4                           ------------")
+
+
 	"""
 		This function checks if the training is done from the Fire side.
 		It should be executed AFTER executing sync/training program on the 
 		Explorer's sode followed by Fire's side, thus after a complete training.
 		"""
 	def check_sync(self, ddimm, verbose=0):
+		# On Host side, we check bit 3 link up and bit 2:0 State Machine = 111
+		card = scan_bus()
 		for i in range (0, len(ddimm)):
-			if ddimm[i].lower() == 'a': reg = FIRE_DDIMMA_HOST_CONF_STATUS_REG
-			elif ddimm[i].lower() == 'b': reg = FIRE_DDIMMB_HOST_CONF_STATUS_REG
+			if ddimm[i].lower() == 'a': reg = FIRE_DDIMMA_HOST_CONF_STATUS_REG   #0x0104000000000020
+			elif ddimm[i].lower() == 'b': reg = FIRE_DDIMMB_HOST_CONF_STATUS_REG #0x0104040000000020
 			
-			if self.i2cread(reg) & (1 << 3): 
-				if verbose: print("DDIMM{} is in sync".format(ddimm[i].upper()))
-				else: return 1
-			else : 
-				if verbose: print("DDIMM{} is NOT in sync".format(ddimm[i].upper()))
-				else: return 0
-			
+			synch_reg = self.i2cread(reg)
+
+			c = 0
+			while((hex(synch_reg & 0xF) != "0xf") & (c < 100)):  # waiting for or checking if synchronization
+				sleep(0.01)
+				if verbose:print(".",end="")
+				synch_reg = self.i2cread(reg)
+				c = c+1
+			if hex(self.i2cread(reg) & 0xF) == "0xf":
+				if verbose:
+					print("\nFIRE's PORT {} sync Reg {}: {}".format(ddimm[i].upper(),hex(reg),hex(synch_reg)))
+					print("Host is synchronized with", card, "on Port {}".format(ddimm[i].upper()))
+					print("> Suggested next command -> python3 omi.py ddimmcfg -d <a/b>")
+				return 1
+			else :
+				if verbose:
+					print("\nFIRE's", card, "on PORT {} sync Reg {}: {}".format(ddimm[i].upper(),hex(reg),hex(synch_reg)))
+					print("===WARNING=== DDIMM{} is NOT in sync".format(ddimm[i].upper()))
+					print("              It is recommended to restart the full training sequence")
+				return 0
+
+			#print(hex(ice.i2c_double_read(0x08012424)))
+
 	def retrain(self, ddimm, verbose=0):
 		for i in range (0, len(ddimm)):
 			if ddimm[i].lower() == 'a': 
@@ -199,20 +220,94 @@ class Fire:
 			val = self.i2cread(reg)
 			self.i2cwrite(reg, (val | (1 << 24)))
 
-			
-			if self.i2cread(check_reg) & (1 << 3): 
+			# use the check_sync to benefit from State machine tests
+			self.check_sync(ddimm[i],1)
+			'''if self.i2cread(check_reg) & (1 << 3): 
 				if verbose: print("DDIMM{} is in sync".format(ddimm[i].upper()))
 				else: return 1
 			else : 
-				if verbose: print("DDIMM{} is NOT in sync".format(ddimm[i].upper()))
-				else: return 0
+				if verbose:
+					print("===WARNING=== DDIMM{} is NOT in sync".format(ddimm[i].upper()))
+					print("              It is recommended to restart the full training sequence")
+				else: return 0'''
 
-	steps2122 = ('steps2122',
+	# 20221110: added 'W',    0x200100000000024C	,0x00000000	,"",  compared to initial versions
+
+	steps2122_ice = ('steps2122_ice',
+		'R',	0x2001000000000000	,0x06361014	,"",
+		'W',	0x2001000000000224	,0x00000221	,"",
+		'W',	0x200100000000026c	,0x0000000f	,"",
+		'W',	0x2001000000000268	,0x00000000	,"",
+		'R',	0x200100000000021c	,0x00000013	,"",
+		'W',    0x200100000000024C	,0x00000000	,"",
+		'R',	0x200100000000024C	,0xf0040044	,"",
+		'R',	0x2001000000000248	,0x00000f00	,"",
+		'W',	0x2001000000000210	,0x03010000	,"",
+		'W',	0x2001000000010014	,0x00000800	,"",
+		'R',	0x2001000000010004	,0x00100000	,"",
+		'W',	0x2001000000010004	,0x00100002	,"",
+
+		'W',	0x3001000140092080	,0x0000000000000000	,"",
+		'W',	0x3001000140092088	,0x0000000000000001	,"",
+		'W',	0x3001000140092090	,0x0000000000000002	,"",
+		'W',	0x3001000140092098	,0x0000000000000003	,"",
+		'R',	0x3001000140092068	,0x0200000000000000	,"",
+		'W',	0x3001000140092068	,0x0000000000000123	,"", 
+
+		'R',	0x2001000000010514	,0x80000000	,"",
+		'W',	0x2001000000010514	,0xC0000000	,"",
+
+		'R',	0x2001000000010510	,0x00000000	,"",
+		'W',	0x2001000000010510	,0x00000000	,"",
+		'R',	0x2001000000010518	,0x00000001	,"",
+		'W',	0x2001000000010518	,0x00010001	,"",
+		'R',	0x200100000001030C	,0x00000000	,"",
+		'W',	0x200100000001030C	,0x00000001	,"",
+									
+		'R',	0x3001000140084380	,0xc1ffffffffffffff	,"",
+	
+		'R',	0x200100000001050C	,0x00000000	,"",
+		'W',	0x200100000001050C	,0x01000000	,"",
+										
+										
+		'R',	0x30010001400843B0	,0xc1ffffffffffffff	,"",
+		'R',	0x30010001400843B8	,0xc1ffffffffffffff	,"",
+		'R',	0x3001000140092030	,0xff07c01fffffffff	,"",
+		'R',	0x3001000140092038	,0xff07c01fffffffff	,"",
+		'R',	0x3001000140200080	,0xe080010000000001	,"",
+		'R',	0x3001000140200088	,0xe080010000000001	,"",
+		'R',	0x3001000140094030	,0xcdffffffffffffff	,"",
+		'R',	0x3001000140094038	,0xcdffffffffffffff	,"",
+		'R',	0x30010001402000B8	,0xe080010000000001	,"",
+		'W',	0x30010001402000B8	,0x0000000000000000	,"",
+		'W',	0x30010001400843B0	,0x0000000000000000	,"",
+		'W',	0x30010001400843B8	,0x2200000000000000	,"",
+		'W',	0x30010001400843A0	,0xC1FFFFFFFFFFFFFF	,"",
+		'W',	0x3001000140092030	,0x0000000000000000	,"",
+		'W',	0x3001000140092038	,0x0068102000000000	,"",
+		'W',	0x3001000140092020	,0xFF07C01FFFFFFFFF	,"",
+		'W',	0x3001000140200080	,0x0000000000000000	,"",
+		'W',	0x3001000140200088	,0xE080010000000001	,"",
+		'W',	0x3001000140200070	,0x1F7FFEFFFFFFFFFE	,"",
+		'W',	0x3001000140094030	,0x0000000000000000	,"",
+		'W',	0x3001000140094038	,0x3200000000000000	,"",
+		'W',	0x3001000140094020	,0xCDFFFFFFFFFFFFFF	,"",
+		'R',	0x30010001400920A0	,0x0000000000000003	,"",
+		'W',	0x30010001400920A0	,0x0080000000000062	,"",
+		'R',	0x30010001400920A8	,0x0000000000000000	,"",
+		'W',	0x30010001400920A8	,0x0000000002000000	,"",
+		'R',	0x3001000140092068	,0x0000000000000123	,"",
+		'W',	0x3001000140092068	,0x0200000000000000	,"",
+
+		'W',	0x010400000000000C	,0x00000800,"",
+		)
+	steps2122_exp = ('steps2122_exp',
 		'R',	0x2001000000000000	,0x06361014	,"",
 		'W',	0x2001000000000224	,0x00000221	,"",
 		'W',	0x200100000000026c	,0x0000000f	,"",
 		'W',	0x2001000000000268	,0x00000000	,"",
 		'R',	0x200100000000021c	,0x00000493	,"",
+		'W',    0x200100000000024C	,0x00000000	,"",
 		'R',	0x200100000000024C	,0x00000000	,"",
 		'R',	0x2001000000000248	,0x00000000	,"",
 		'W',	0x2001000000000210	,0x03010000	,"",
@@ -273,24 +368,11 @@ class Fire:
 		'W',	0x3001000140092068	,0x0200000000000000	,"",
 
 		'W',	0x010400000000000C	,0x00000800,"",
-
-		'W',	0x3001000140084738	,0x8000000000000000 ,"", 
-		'W',	0x2001000100002058	,0x0000000000000001 ,"",
-		'W',	0x000000010103FF40	,0x0000000042410007 ,"",
-		'W',	0x300100010103FF48	,0x00000000FFFFFFFF ,"",
-		'W',	0x300100010103FF50	,0x0000000000000000 ,"",
-		'W',	0x300100010103FF58	,0x0000000000000000 ,"",
-		'W',	0x300100010103FF60	,0x0000000000000000 ,"",
-		'W',	0x300100010103FF68	,0x0000000000000000 ,"",
-		'W',	0x300100010103FF70	,0x0000000000000000 ,"",
-		'W',	0x300100010103FF78	,0x3932F90100000000 ,"",
-		'W',	0x3001000140084730	,0x8000000000000000 ,"",
-		'R',	0x2001000100002058	,0x0000000000000001 ,"",
 		)
 
 	steps25_a0 = ("steps25_a0",
-		'W'	,0x3001000140084738		,0x8000000000000000	,"",			
-		'W'	,0x2001000100002058		,0x0000000000000001	,"",
+		'W'	,0x3001000140084738	,0x8000000000000000	,"",			
+		'W'	,0x2001000100002058	,0x0000000000000001	,"",
 
 		'R'	,0x300100014008A1C0	,0x4210000000000000	,"",
 		'W'	,0x300100014008A1C0	,0x4210000000000000	,"",
@@ -725,14 +807,14 @@ class Fire:
 			
 			if reg_list[i] == 'R':
 				if  (type(reg_list[i+2])  == str):
-					logging.info("READ  REG: " + "0x{:0>16x}".format(reg) + " No expectation")
+					logging.info("FIRE: READ  REG: " + "0x{:0>16x}".format(reg) + " No expectation")
 				else:
-					logging.info("READ  REG: " + "0x{:0>16x}".format(reg) + " EXP : " + "0x{:0>16x}".format(reg_list[i+2]) + " READ: "  + "0x{:0>16x}".format(self.i2cread(reg)))
+					logging.info("FIRE: READ  REG: " + "0x{:0>16x}".format(reg) + " EXP : " + "0x{:0>16x}".format(reg_list[i+2]) + " READ: "  + "0x{:0>16x}".format(self.i2cread(reg)))
 					if ("0x{:0>16x}".format(reg_list[i+2]) != "0x{:0>16x}".format(self.i2cread(reg))):
-						print("!!! WARNING: READ DATA Not expected !!!!")
+						print("!!! WARNING: FIRE: READ DATA Not expected !!!!")
 						print("for Register 0x{:0>16x}".format(reg))
 			else:
-				logging.info("WRITE REG: " + "0x{:0>16x}".format(reg) + " DATA: " + "0x{:0>16x}".format(reg_list[i+2]));self.i2cwrite(reg, reg_list[i+2])
+				logging.info("FIRE: WRITE REG: " + "0x{:0>16x}".format(reg) + " DATA: " + "0x{:0>16x}".format(reg_list[i+2]));self.i2cwrite(reg, reg_list[i+2])
 
 if __name__ == "__main__":
 	# logging.basicConfig(level=logging.INFO)

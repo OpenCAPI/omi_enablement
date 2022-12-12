@@ -70,7 +70,7 @@ class Explorer:
         This is translated actually into an i2c write followed by an i2c read with the following commands:
         self.i2c_simple_write(0x404A8094098)
         self.i2c_simple_read(0x2)
-        """
+    """
     def i2c_simple_read(self, reg_addr):
         res = self.i2c_bus.read_i2c_block_data(EXP_I2C_ADDR, reg_addr, 5)
         
@@ -164,18 +164,36 @@ class Explorer:
             logging.info("       Explorer 32bits  Read at Scom Addr: {:#010x}".format(reg_addr))
         logging.info("       Explorer read at Register Addr:     {:#010x}".format(new_reg_addr))
 
+        try:
+            self.i2c_simple_read(0x2)
+        except:
+            print("WARNING ! EXP read failed")
+            exit()
         self.i2c_simple_write(0x0304A0000000 + new_reg_addr)
         self.i2c_simple_read(0x2)
+        # EXPLORER we use a trick to get the result
         self.i2c_simple_write(0x0404A0000000 + new_reg_addr)
         res_msb = self.i2c_simple_read(0x2)   # MSBs of 64 or 32 bits reg content value
+        # TEST to replace write by read as per cronus
+        #res_msb = self.i2c_simple_read(0x0404A0000000 + new_reg_addr)
+
+
 
         self.i2c_simple_read(0x2)   # previous command status
         
         if bit_64:
             new_reg_addr_2 = new_reg_addr + 4
             logging.info("       Explorer read at Register Addr:     {:#010x}".format(new_reg_addr_2))
+            
+            try:
+                self.i2c_simple_read(0x2)
+            except:
+                print("WARNING ! EXP read failed")
+                exit()
+            
             self.i2c_simple_write(0x0304A0000000 + new_reg_addr_2)
             self.i2c_simple_read(0x2)
+            # EXPLORER we use a trick to get the result
             self.i2c_simple_write(0x0404A0000000 + new_reg_addr_2)
             res_lsb = self.i2c_simple_read(0x2) # LSBs of 64
 
@@ -252,8 +270,8 @@ class Explorer:
         return (r_data == data)
 
     def i2c_double_write(self, reg_addr, data):
-        logging.info("Explorer DWrite Reg: {:#010x} with Data:{:#010x}".format(reg_addr, data))
         bit_64 = reg_addr & (1 << 27)
+        logging.info("Explorer DWrite Reg: {:#010x} with Data:{:#010x}".format(reg_addr, data))
 
         if bit_64:
             raw_reg_addr = reg_addr & ~(1 << 27)
@@ -337,7 +355,7 @@ class Explorer:
         logging.info("---------- Step 12 exp_omi_setup_wrap            ------------")
         self.i2c_simple_write(0x010400008090 + b)
         logging.info("DBG:Explorer Writing {} 4 bytes in reg 01 of Explorer".format(hex(0x010400008090 + b)))
-        logging.info("DBG:To trigger SerDes initialisation (Explorer side)")
+        logging.info("DBG:To trigger SerDes initialization (Explorer side)")
         logging.info("Waiting status flag to change from busy...")
         while (self.i2c_simple_read(0x2) & ~0xffff00ff ) >> 8 != 0: pass
         self.i2c_simple_read(0x2)
@@ -356,6 +374,8 @@ class Explorer:
         else: 
             print("Frequency unsupported. Expecting 333MHz or 400MHz.")
             return
+
+        logging.info("---------- Step 12 : Explorer OMI Training Sequence ------------")
 
         self.i2c_double_read(0x08040010)
         self.i2c_double_read(0x08040011)
@@ -398,12 +418,12 @@ class Explorer:
         
         self.i2c_double_read(0x08012811)
         
-        #("---------- Step 14 : Explorer OMI Training Sequence ------------")  ??????????
+        logging.info("---------- Step 14 : Explorer OMI Training Sequence ------------")
         
-        #("---------- Step 15 : Explorer OMI Training Sequence ------------")
+        logging.info("---------- Step 15 : Explorer OMI Training Sequence ------------")
         self.i2c_simple_write(0x010400008190 + b)
         logging.info("DBG:Explorer Writing {} 4 bytes in reg 01 of Explorer".format(hex(0x010400008190 + b)))
-        logging.info("DBG:To start DL training (Explorer side)")
+        logging.info("DBG:To start DL training (Stage 1 Firmware Explorer side)")
         logging.info("---------- End of Step 15                         ------------")
 
     """
