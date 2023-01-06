@@ -1,2 +1,2 @@
 Check documentation at : 
-https://acastellane.github.io/omi-doc/blocs/python/
+https://opencapi.github.io/omi-doc/blocs/enablement/
